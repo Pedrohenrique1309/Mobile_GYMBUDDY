@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Mobile-GYMBUDDY</string>
+    <string name="login_title">Fazer Login</string>
+    <string name="email_or_user">E-mail ou usuário</string>
+    <string name="password">Senha</string>
+    <string name="forgot_password">Esqueci minha senha</string>
+    <string name="login_button">Fazer Login</string>
+    <string name="no_account">Não possui uma conta?</string>
+    <string name="create_account">Criar conta</string>
+    <string name="logo_description">Logo</string>
 </resources>
