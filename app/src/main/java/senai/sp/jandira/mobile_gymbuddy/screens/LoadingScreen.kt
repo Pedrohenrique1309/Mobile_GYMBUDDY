@@ -34,7 +34,7 @@ fun LoadingScreen() {
             Image(
                 painter = painterResource(id = logoRes),
                 contentDescription = "Logo do App",
-                modifier = Modifier.size(150.dp)
+                modifier = Modifier.size(250.dp)
             )
         }
     }
