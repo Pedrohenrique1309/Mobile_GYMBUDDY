@@ -168,7 +168,7 @@ fun RegistrationScreen(
         // TEXTO COM OS REQUISITOS DA SENHA
         Text(
             text = stringResource(id = R.string.error_password_requirements),
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             color = textColor,
             modifier = Modifier
                 .fillMaxWidth()
