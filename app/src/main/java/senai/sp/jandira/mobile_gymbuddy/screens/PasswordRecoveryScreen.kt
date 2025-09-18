@@ -26,6 +26,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
+import senai.sp.jandira.mobile_gymbuddy.ui.theme.onPrimaryLight
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 
 enum class RecoveryStep {
@@ -56,7 +57,7 @@ fun PasswordRecoveryScreen(navController: NavController) {
             painter = painterResource(id = logoRes),
             contentDescription = stringResource(id = R.string.logo_description),
             modifier = Modifier
-                .size(120.dp)
+                .size(150.dp)
                 .align(Alignment.CenterHorizontally)
         )
 
@@ -97,7 +98,7 @@ fun PasswordRecoveryScreen(navController: NavController) {
             }
         )
 
-        Spacer(modifier = Modifier.height(140.dp))
+        Spacer(modifier = Modifier.height(100.dp))
     }
 }
 
@@ -117,7 +118,7 @@ fun StepEnterEmail(
     ) {
         Text(
             "RECUPERAÇÃO DE SENHA",
-            fontSize = 22.sp,
+            fontSize = 25.sp,
             color = textColor,
             fontFamily = monoFont
         )
@@ -142,7 +143,7 @@ fun StepEnterEmail(
             )
         )
 
-        Spacer(modifier = Modifier.height(82.dp))
+        Spacer(modifier = Modifier.height(137.dp))
 
         Button(
             onClick = onNext,
@@ -151,7 +152,7 @@ fun StepEnterEmail(
                 .height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = secondaryLight)
         ) {
-            Text("Receber código", color = buttonTextColor)
+            Text("Receber código", color = onPrimaryLight)
         }
     }
 }
@@ -197,7 +198,7 @@ fun StepVerifyCode(
             )
         )
 
-        Spacer(modifier = Modifier.height(82.dp))
+        Spacer(modifier = Modifier.height(140.dp))
 
         Button(
             onClick = onNext,
@@ -206,7 +207,7 @@ fun StepVerifyCode(
                 .height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = secondaryLight)
         ) {
-            Text("Verificar", color = buttonTextColor)
+            Text("Verificar", color = onPrimaryLight)
         }
     }
 }
@@ -234,7 +235,7 @@ fun StepResetPassword(
             fontFamily = monoFont
         )
 
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(105.dp))
 
         OutlinedTextField(
             value = password,
@@ -278,7 +279,7 @@ fun StepResetPassword(
             )
         )
 
-        Spacer(modifier = Modifier.height(82.dp))
+        Spacer(modifier = Modifier.height(140.dp))
 
         Button(
             onClick = onFinish,
@@ -287,7 +288,7 @@ fun StepResetPassword(
                 .height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = secondaryLight)
         ) {
-            Text("Alterar senha", color = buttonTextColor)
+            Text("Alterar senha", color = onPrimaryLight)
         }
     }
 }

@@ -28,6 +28,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
+import senai.sp.jandira.mobile_gymbuddy.ui.theme.onPrimaryLight
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 
 
@@ -146,7 +147,7 @@ fun LoginScreen(
             ) {
                 Text(
                     text = stringResource(id = R.string.login_button),
-                    color = buttonTextColor
+                    color = onPrimaryLight
                 )
             }
         }
