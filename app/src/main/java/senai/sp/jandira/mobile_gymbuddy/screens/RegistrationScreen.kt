@@ -1,5 +1,8 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,9 +29,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.delay
 import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +57,24 @@ fun RegistrationScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
+    var errorMessage by remember { mutableStateOf("") }
+
+    val errorEmptyFields = stringResource(id = R.string.error_empty_fields)
+    val errorEmailsNotMatching = stringResource(id = R.string.error_emails_not_matching)
+    val errorPasswordsNotMatching = stringResource(id = R.string.error_passwords_not_matching)
+    val errorPasswordRequirements = stringResource(id = R.string.error_password_requirements)
+
+    // Regex para validar a senha
+    val passwordRegex = "^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%^&*()_+-/])(?=.{8,}).*\$".toRegex()
+
+    // Faz a mensagem de erro desaparecer após 3 segundos
+    LaunchedEffect(key1 = errorMessage) {
+        if (errorMessage.isNotEmpty()) {
+            delay(3000)
+            errorMessage = ""
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -61,7 +85,6 @@ fun RegistrationScreen(
     ) {
         Spacer(modifier = Modifier.height(36.dp))
 
-        // Logo
         val logoRes = if (isDarkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
         Image(
             painter = painterResource(id = logoRes),
@@ -71,7 +94,6 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Título
         Text(
             text = stringResource(id = R.string.register_title),
             fontFamily = monoFont,
@@ -172,11 +194,55 @@ fun RegistrationScreen(
             )
         )
 
-        Spacer(modifier = Modifier.height(46.dp))
+        Spacer(modifier = Modifier.height(26.dp))
+
+        // Mensagem de erro visualmente atraente
+        AnimatedVisibility(
+            visible = errorMessage.isNotEmpty(),
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.small
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Erro",
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Botão Cadastrar
         Button(
-            onClick = { onRegisterClick() },
+            onClick = {
+                if (username.isBlank() || email.isBlank() || confirmEmail.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+                    errorMessage = errorEmptyFields
+                } else if (email != confirmEmail) {
+                    errorMessage = errorEmailsNotMatching
+                } else if (password != confirmPassword) {
+                    errorMessage = errorPasswordsNotMatching
+                } else if (!password.matches(passwordRegex)) {
+                    errorMessage = errorPasswordRequirements
+                } else {
+                    errorMessage = ""
+                    onRegisterClick()
+                }
+            },
             modifier = Modifier
                 .width(200.dp)
                 .height(50.dp),
@@ -219,9 +285,9 @@ fun RegistrationScreen(
 fun RegistrationScreenPreview() {
     MobileGYMBUDDYTheme {
         RegistrationScreen(
-            onRegisterClick = {}, // Passa os callbacks vazios
-            onLoginClick = {},    // Passa os callbacks vazios
-            navController = rememberNavController() // Passa o navController de mentirinha
+            onRegisterClick = {},
+            onLoginClick = {},
+            navController = rememberNavController()
         )
     }
 }
