@@ -22,4 +22,8 @@
     <string name="email_label">Digite seu email</string>
     <string name="recovery_button">Receber código</string>
     <string name="back_to_login">Voltar para login</string>
+    <string name="error_empty_fields">Por favor, preencha todos os campos.</string>
+    <string name="error_emails_not_matching">E-mails não coincidem.</string>
+    <string name="error_passwords_not_matching">Senhas não coincidem.</string>
+    <string name="error_password_requirements">A senha deve ter 8 caracteres, uma maiúscula, um número e um caractere especial.</string>
 </resources>

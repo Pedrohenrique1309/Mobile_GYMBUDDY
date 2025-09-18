@@ -1,5 +1,8 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.delay // Importe a função de delay
 import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.onPrimaryLight
@@ -43,14 +48,22 @@ fun LoginScreen(
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
-    val buttonTextColor = if (isDarkTheme) Color.White else Color.Black
-
-    // Fonte Monospace
     val monoFont = FontFamily.Monospace
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    var errorMessage by remember { mutableStateOf("") }
+    val errorEmptyFields = stringResource(id = R.string.error_empty_fields)
+
+    // NOVO CÓDIGO: Faz a mensagem de erro desaparecer depois de 3 segundos
+    LaunchedEffect(key1 = errorMessage) {
+        if (errorMessage.isNotEmpty()) {
+            delay(5000) //
+            errorMessage = ""
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -60,12 +73,10 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Bloco superior (logo, título e campos de texto)
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo
             val logoRes = if (isDarkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
             Image(
                 painter = painterResource(id = logoRes),
@@ -75,7 +86,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Título
             Text(
                 text = stringResource(id = R.string.login_title),
                 fontFamily = monoFont,
@@ -85,7 +95,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(78.dp))
 
-            // E-mail/Usuário
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -100,7 +109,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Senha
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -122,12 +130,39 @@ fun LoginScreen(
             )
         }
 
-        // Bloco intermediário (botão e link "esqueci minha senha")
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Esqueci minha senha
+            // Mensagem de erro visualmente atraente
+            AnimatedVisibility(
+                visible = errorMessage.isNotEmpty(),
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Erro",
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
             Text(
                 text = stringResource(id = R.string.forgot_password),
                 color = secondaryLight,
@@ -135,11 +170,17 @@ fun LoginScreen(
                 modifier = Modifier.clickable { onForgotPasswordClick() }
             )
 
-            Spacer(modifier = Modifier.height(62.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Botão Fazer Login
             Button(
-                onClick = { onLoginClick() },
+                onClick = {
+                    if (email.isBlank() || password.isBlank()) {
+                        errorMessage = errorEmptyFields
+                    } else {
+                        errorMessage = ""
+                        onLoginClick()
+                    }
+                },
                 modifier = Modifier
                     .width(200.dp)
                     .height(50.dp),
@@ -152,7 +193,6 @@ fun LoginScreen(
             }
         }
 
-        // Bloco inferior (link "criar conta")
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
@@ -180,7 +220,7 @@ fun LoginScreen(
 fun LoginScreenPreview() {
     MobileGYMBUDDYTheme {
         LoginScreen(
-            navController = rememberNavController(), // Uma maneira simples de mockar o NavController para previews
+            navController = rememberNavController(),
             onLoginClick = {},
             onForgotPasswordClick = {},
             onCreateAccountClick = {}
