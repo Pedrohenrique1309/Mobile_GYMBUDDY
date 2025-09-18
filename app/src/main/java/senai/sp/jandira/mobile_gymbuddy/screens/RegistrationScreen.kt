@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
@@ -31,7 +33,8 @@ import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 @Composable
 fun RegistrationScreen(
     onRegisterClick: () -> Unit = {},
-    onLoginClick: () -> Unit = {}
+    onLoginClick: () -> Unit = {},
+    navController: NavHostController
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = MaterialTheme.colorScheme.background
@@ -215,6 +218,10 @@ fun RegistrationScreen(
 @Composable
 fun RegistrationScreenPreview() {
     MobileGYMBUDDYTheme {
-        RegistrationScreen()
+        RegistrationScreen(
+            onRegisterClick = {}, // Passa os callbacks vazios
+            onLoginClick = {},    // Passa os callbacks vazios
+            navController = rememberNavController() // Passa o navController de mentirinha
+        )
     }
 }

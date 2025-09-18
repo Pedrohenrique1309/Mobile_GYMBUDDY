@@ -22,6 +22,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
@@ -34,7 +36,7 @@ val monoFont = FontFamily.Monospace
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PasswordRecoveryScreen() {
+fun PasswordRecoveryScreen(navController: NavController) {
     var step by remember { mutableStateOf(RecoveryStep.ENTER_EMAIL) }
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = MaterialTheme.colorScheme.background
@@ -90,7 +92,9 @@ fun PasswordRecoveryScreen() {
             "Voltar para login",
             color = secondaryLight,
             textDecoration = TextDecoration.Underline,
-            modifier = Modifier.clickable { /* ação voltar */ }
+            modifier = Modifier.clickable {
+                navController.navigate("login")
+            }
         )
 
         Spacer(modifier = Modifier.height(140.dp))
@@ -294,7 +298,7 @@ fun StepResetPassword(
 @Composable
 fun PasswordRecoveryScreenPreview() {
     MobileGYMBUDDYTheme {
-        PasswordRecoveryScreen()
+        PasswordRecoveryScreen(navController = rememberNavController())
     }
 }
 

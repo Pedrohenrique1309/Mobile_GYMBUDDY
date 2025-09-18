@@ -24,20 +24,25 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginClick: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {},
-    onCreateAccountClick: () -> Unit = {}
+    onCreateAccountClick: () -> Unit = {},
+    navController: NavController
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
+    val buttonTextColor = if (isDarkTheme) Color.White else Color.Black
 
     // Fonte Monospace
     val monoFont = FontFamily.Monospace
@@ -50,108 +55,109 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundColor)
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Spacer(modifier = Modifier.height(45.dp))
-
-        // Logo
-        val logoRes = if (isDarkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
-        Image(
-            painter = painterResource(id = logoRes),
-            contentDescription = stringResource(id = R.string.logo_description),
-            modifier = Modifier.size(150.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Título
-        Text(
-            text = stringResource(id = R.string.login_title),
-            fontFamily = monoFont,
-            fontSize = 32.sp,
-            color = textColor
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // E-mail/Usuário
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text(stringResource(id = R.string.email_or_user)) },
-            singleLine = true,
+        // Bloco superior (logo, título e campos de texto)
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = secondaryLight,
-                unfocusedBorderColor = secondaryLight
-            )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Senha
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text(stringResource(id = R.string.password)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = "Toggle senha")
-                }
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = secondaryLight,
-                unfocusedBorderColor = secondaryLight
-            )
-        )
-
-        Spacer(modifier = Modifier.height(46.dp))
-
-        // Esqueci minha senha
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Logo
+            val logoRes = if (isDarkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
+            Image(
+                painter = painterResource(id = logoRes),
+                contentDescription = stringResource(id = R.string.logo_description),
+                modifier = Modifier.size(150.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Título
+            Text(
+                text = stringResource(id = R.string.login_title),
+                fontFamily = monoFont,
+                fontSize = 32.sp,
+                color = textColor
+            )
+
+            Spacer(modifier = Modifier.height(78.dp))
+
+            // E-mail/Usuário
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text(stringResource(id = R.string.email_or_user)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = secondaryLight,
+                    unfocusedBorderColor = secondaryLight
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Senha
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text(stringResource(id = R.string.password)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = "Toggle senha")
+                    }
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = secondaryLight,
+                    unfocusedBorderColor = secondaryLight
+                )
+            )
+        }
+
+        // Bloco intermediário (botão e link "esqueci minha senha")
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Esqueci minha senha
             Text(
                 text = stringResource(id = R.string.forgot_password),
                 color = secondaryLight,
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier.clickable { onForgotPasswordClick() }
             )
+
+            Spacer(modifier = Modifier.height(62.dp))
+
+            // Botão Fazer Login
+            Button(
+                onClick = { onLoginClick() },
+                modifier = Modifier
+                    .width(200.dp)
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = secondaryLight)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.login_button),
+                    color = buttonTextColor
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(46.dp))
-
-        // Botão Fazer Login
-        Button(
-            onClick = { onLoginClick() },
-            modifier = Modifier
-                .width(200.dp)
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = secondaryLight)
-        ) {
-            Text(
-                text = stringResource(id = R.string.login_button),
-                color = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.onPrimary
-            )
-        }
-
-        Spacer(modifier = Modifier.height(64.dp))
-
-        // Criar conta
+        // Bloco inferior (link "criar conta")
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
         ) {
             Text(
                 text = stringResource(id = R.string.no_account),
@@ -172,6 +178,11 @@ fun LoginScreen(
 @Composable
 fun LoginScreenPreview() {
     MobileGYMBUDDYTheme {
-        LoginScreen()
+        LoginScreen(
+            navController = rememberNavController(), // Uma maneira simples de mockar o NavController para previews
+            onLoginClick = {},
+            onForgotPasswordClick = {},
+            onCreateAccountClick = {}
+        )
     }
 }
