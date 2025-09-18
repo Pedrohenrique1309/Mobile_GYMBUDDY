@@ -8,4 +8,14 @@
     <string name="no_account">Não possui uma conta?</string>
     <string name="create_account">Criar conta</string>
     <string name="logo_description">Logo</string>
+    <string name="register_title">Cadastrar-se</string>
+    <string name="create_username">Crie um nome de usuário</string>
+    <string name="insert_email">Insira seu e-mail</string>
+    <string name="confirm_email">Confirme o e-mail</string>
+    <string name="create_password">Crie uma senha</string>
+    <string name="confirm_password">Confirmar senha</string>
+    <string name="register_button">Cadastrar</string>
+    <string name="have_account">Já possui uma conta?</string>
+    <string name="login_here">Fazer Login</string>
+
 </resources>
