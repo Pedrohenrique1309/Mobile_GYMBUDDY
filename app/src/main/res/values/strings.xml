@@ -17,5 +17,9 @@
     <string name="register_button">Cadastrar</string>
     <string name="have_account">Já possui uma conta?</string>
     <string name="login_here">Fazer Login</string>
-
+    <string name="recovery_title">RECUPERAÇÃO DE SENHA</string>
+    <string name="recovery_subtitle">Enviaremos um código de verificação para seu email</string>
+    <string name="email_label">Digite seu email</string>
+    <string name="recovery_button">Receber código</string>
+    <string name="back_to_login">Voltar para login</string>
 </resources>
