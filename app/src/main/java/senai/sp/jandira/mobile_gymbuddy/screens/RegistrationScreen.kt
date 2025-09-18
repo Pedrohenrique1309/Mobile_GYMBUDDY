@@ -64,10 +64,8 @@ fun RegistrationScreen(
     val errorPasswordsNotMatching = stringResource(id = R.string.error_passwords_not_matching)
     val errorPasswordRequirements = stringResource(id = R.string.error_password_requirements)
 
-    // Regex para validar a senha
     val passwordRegex = "^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%^&*()_+-/])(?=.{8,}).*\$".toRegex()
 
-    // Faz a mensagem de erro desaparecer após 3 segundos
     LaunchedEffect(key1 = errorMessage) {
         if (errorMessage.isNotEmpty()) {
             delay(3000)
@@ -92,7 +90,7 @@ fun RegistrationScreen(
             modifier = Modifier.size(150.dp)
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         Text(
             text = stringResource(id = R.string.register_title),
@@ -103,7 +101,6 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Nome de usuário
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
@@ -118,7 +115,6 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // E-mail
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -134,7 +130,6 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Confirmar E-mail
         OutlinedTextField(
             value = confirmEmail,
             onValueChange = { confirmEmail = it },
@@ -150,7 +145,6 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Criar Senha
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
@@ -171,7 +165,17 @@ fun RegistrationScreen(
             )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // TEXTO COM OS REQUISITOS DA SENHA
+        Text(
+            text = stringResource(id = R.string.error_password_requirements),
+            fontSize = 10.sp,
+            color = textColor,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp, bottom = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(4.dp)) // Espaçamento entre os campos
 
         // Confirmar Senha
         OutlinedTextField(
@@ -247,8 +251,7 @@ fun RegistrationScreen(
                 .width(200.dp)
                 .height(50.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = secondaryLight,
-                contentColor = if (isDarkTheme) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary
+                containerColor = secondaryLight
             )
         ) {
             Text(
