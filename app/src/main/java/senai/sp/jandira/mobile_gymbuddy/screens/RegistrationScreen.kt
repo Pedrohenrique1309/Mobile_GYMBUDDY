@@ -1,5 +1,6 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -30,10 +31,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
-
+import senai.sp.jandira.mobile_gymbuddy.data.model.Usuario
+import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +48,6 @@ fun RegistrationScreen(
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
-
     val monoFont = FontFamily.Monospace
 
     var username by remember { mutableStateOf("") }
@@ -65,6 +67,8 @@ fun RegistrationScreen(
     val errorPasswordRequirements = stringResource(id = R.string.error_password_requirements)
 
     val passwordRegex = "^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%^&*()_+-/])(?=.{8,}).*\$".toRegex()
+
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(key1 = errorMessage) {
         if (errorMessage.isNotEmpty()) {
@@ -165,7 +169,6 @@ fun RegistrationScreen(
             )
         )
 
-        // TEXTO COM OS REQUISITOS DA SENHA
         Text(
             text = stringResource(id = R.string.error_password_requirements),
             fontSize = 11.sp,
@@ -175,9 +178,8 @@ fun RegistrationScreen(
                 .padding(top = 4.dp, bottom = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(4.dp)) // Espaçamento entre os campos
+        Spacer(modifier = Modifier.height(4.dp))
 
-        // Confirmar Senha
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
@@ -200,7 +202,6 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(26.dp))
 
-        // Mensagem de erro visualmente atraente
         AnimatedVisibility(
             visible = errorMessage.isNotEmpty(),
             enter = expandVertically(),
@@ -231,7 +232,6 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Botão Cadastrar
         Button(
             onClick = {
                 if (username.isBlank() || email.isBlank() || confirmEmail.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
@@ -244,7 +244,29 @@ fun RegistrationScreen(
                     errorMessage = errorPasswordRequirements
                 } else {
                     errorMessage = ""
-                    onRegisterClick()
+                    scope.launch {
+                        try {
+                            val usuarioService = RetrofitFactory.getUsuarioService()
+                            val novoUsuario = Usuario(
+                                nome = username,
+                                email = email,
+                                senha = password
+                            )
+
+                            val response = usuarioService.cadastrarUsuario(novoUsuario)
+
+                            if (response.isSuccessful) {
+                                navController.navigate("login")
+                            } else {
+                                val errorBody = response.errorBody()?.string()
+                                Log.e("API_ERROR", "Error: ${response.code()} - $errorBody")
+                                errorMessage = "Erro no cadastro. Verifique os dados."
+                            }
+                        } catch (e: Exception) {
+                            Log.e("API_CONNECTION", "Erro de conexão: ${e.message}")
+                            errorMessage = "Não foi possível conectar. Tente novamente mais tarde."
+                        }
+                    }
                 }
             },
             modifier = Modifier
@@ -262,7 +284,6 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Já tem conta?
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
