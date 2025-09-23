@@ -54,9 +54,12 @@ dependencies {
 
     implementation(libs.androidx.material.icons.extended)
 
-    implementation("androidx.navigation:navigation-compose:2.7.0")
+    implementation (libs.retrofit)
+    implementation (libs.converter.gson)
+
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.runtime.ktx)
+    implementation(libs.androidx.navigation.runtime.android)
 
 
     testImplementation(libs.junit)
