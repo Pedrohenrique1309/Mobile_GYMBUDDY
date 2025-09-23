@@ -61,6 +61,10 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.runtime.android)
 
+    implementation("com.squareup.okhttp3:logging-interceptor:5.1.0")
+
+    implementation(libs.okhttp.logging.interceptor)
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -36,8 +36,6 @@ import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 import senai.sp.jandira.mobile_gymbuddy.data.model.Usuario
-import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationScreen(
@@ -50,7 +48,7 @@ fun RegistrationScreen(
     val textColor = MaterialTheme.colorScheme.onBackground
     val monoFont = FontFamily.Monospace
 
-    var username by remember { mutableStateOf("") }
+    var nickname by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var confirmEmail by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -105,10 +103,11 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Campo de texto para o nickname
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text(stringResource(id = R.string.create_username)) },
+            value = nickname,
+            onValueChange = { nickname = it },
+            label = { Text("Crie um nome de usuário") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -234,7 +233,8 @@ fun RegistrationScreen(
 
         Button(
             onClick = {
-                if (username.isBlank() || email.isBlank() || confirmEmail.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+                // A validação agora checa se o nickname não está vazio
+                if (nickname.isBlank() || email.isBlank() || confirmEmail.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
                     errorMessage = errorEmptyFields
                 } else if (email != confirmEmail) {
                     errorMessage = errorEmailsNotMatching
@@ -247,10 +247,12 @@ fun RegistrationScreen(
                     scope.launch {
                         try {
                             val usuarioService = RetrofitFactory.getUsuarioService()
+                            // O objeto Usuario agora inclui o campo 'nickname'
                             val novoUsuario = Usuario(
-                                nome = username,
+                                nome = null, // Passe o valor nulo explicitamente
                                 email = email,
-                                senha = password
+                                senha = password,
+                                nickname = nickname
                             )
 
                             val response = usuarioService.cadastrarUsuario(novoUsuario)

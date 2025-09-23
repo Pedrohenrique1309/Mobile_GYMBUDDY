@@ -70,7 +70,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ------------------- Composable da Splash Screen -------------------
 @Composable
 fun LoadingScreen(onTimeout: () -> Unit) {
     var visible by remember { mutableStateOf(false) }

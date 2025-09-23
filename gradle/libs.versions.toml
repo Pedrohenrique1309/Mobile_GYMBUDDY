@@ -1,7 +1,7 @@
 [versions]
 agp = "8.8.0"
 converterGson = "2.9.0"
-kotlin = "2.0.0"
+kotlin = "2.2.20"
 coreKtx = "1.10.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -15,6 +15,7 @@ navigationRuntimeKtx = "2.9.4"
 navigationComposeJvmstubs = "2.9.4"
 navigationRuntimeAndroid = "2.9.4"
 retrofit = "2.9.0"
+okhttp = "4.12.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,6 +39,8 @@ androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navig
 androidx-navigation-compose-jvmstubs = { group = "androidx.navigation", name = "navigation-compose-jvmstubs", version.ref = "navigationComposeJvmstubs" }
 androidx-navigation-runtime-android = { group = "androidx.navigation", name = "navigation-runtime-android", version.ref = "navigationRuntimeAndroid" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+okhttp-logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" } # Adicione esta linha
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

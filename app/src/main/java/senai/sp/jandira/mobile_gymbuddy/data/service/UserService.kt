@@ -7,6 +7,6 @@ import senai.sp.jandira.mobile_gymbuddy.data.model.Usuario
 
 interface UsuarioService {
 
-    @POST("/v1/gymbuddy/usuario")
+    @POST("v1/gymbuddy/usuario")
     suspend fun cadastrarUsuario(@Body usuario: Usuario): Response<Void>
 }
