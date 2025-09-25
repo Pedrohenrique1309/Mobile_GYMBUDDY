@@ -1,5 +1,3 @@
-// ARQUIVO: MainActivity.kt (Completo e Corrigido)
-
 package senai.sp.jandira.mobile_gymbuddy
 
 import android.os.Bundle
@@ -23,7 +21,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
-import senai.sp.jandira.mobile_gymbuddy.screens.HomeScreen // <-- MUDANÇA 1: Importe a nova tela
+import senai.sp.jandira.mobile_gymbuddy.screens.HomeScreen
+import senai.sp.jandira.mobile_gymbuddy.screens.ImcScreen // <-- MUDANÇA: Importe da nova tela
 import senai.sp.jandira.mobile_gymbuddy.screens.LoginScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.PasswordRecoveryScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.RegistrationScreen
@@ -65,10 +64,13 @@ class MainActivity : ComponentActivity() {
                                     onLoginClick = { navController.navigate("login") }
                                 )
                             }
-
-                            // MUDANÇA 2: Adicione a nova rota para a HomeScreen
                             composable("home") {
                                 HomeScreen(navController = navController)
+                            }
+
+                            // MUDANÇA: Adicionada a nova rota para a tela de IMC
+                            composable("imc") {
+                                ImcScreen(navController = navController)
                             }
                         }
                     }
@@ -80,7 +82,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun LoadingScreen(onTimeout: () -> Unit) {
-    // ... (Seu código da LoadingScreen continua o mesmo, sem alterações)
     var visible by remember { mutableStateOf(false) }
     val darkTheme = isSystemInDarkTheme()
 

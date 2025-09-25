@@ -258,7 +258,7 @@ fun RegistrationScreen(
 
                             if (response.isSuccessful) {
                                 Log.d("API_SUCCESS", "Cadastro bem-sucedido (${response.code()}). Navegando para login.")
-                                navController.navigate("login")
+                                navController.navigate("imc")
                             } else {
                                 val errorBody = response.errorBody()?.string()
                                 Log.e("API_ERROR", "Erro na resposta da API: ${response.code()} - $errorBody")
