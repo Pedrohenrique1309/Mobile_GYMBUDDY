@@ -1,5 +1,6 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -17,7 +18,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -30,8 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.delay // Importe a função de delay
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import senai.sp.jandira.mobile_gymbuddy.R
+// CORREÇÃO AQUI: Caminho do import ajustado
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.onPrimaryLight
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
@@ -53,14 +55,17 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-
     var errorMessage by remember { mutableStateOf("") }
-    val errorEmptyFields = stringResource(id = R.string.error_empty_fields)
 
-    // NOVO CÓDIGO: Faz a mensagem de erro desaparecer depois de 3 segundos
+    val errorEmptyFields = stringResource(id = R.string.error_empty_fields)
+    // Agora esta linha vai funcionar, pois a string existe em strings.xml
+    val errorInvalidCredentials = stringResource(id = R.string.error_invalid_credentials)
+
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(key1 = errorMessage) {
         if (errorMessage.isNotEmpty()) {
-            delay(5000) //
+            delay(5000)
             errorMessage = ""
         }
     }
@@ -73,6 +78,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
+        // ... O resto do código continua o mesmo ...
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -134,7 +140,6 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Mensagem de erro visualmente atraente
             AnimatedVisibility(
                 visible = errorMessage.isNotEmpty(),
                 enter = expandVertically(),
@@ -162,7 +167,7 @@ fun LoginScreen(
                     }
                 }
             }
-
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(id = R.string.forgot_password),
                 color = secondaryLight,
@@ -178,7 +183,28 @@ fun LoginScreen(
                         errorMessage = errorEmptyFields
                     } else {
                         errorMessage = ""
-                        onLoginClick()
+                        scope.launch {
+                            try {
+                                val usuarioService = RetrofitFactory.getUsuarioService()
+                                val response = usuarioService.logarUsuario(email, password)
+
+                                if (response.isSuccessful) {
+                                    val loginResponse = response.body()
+                                    if (loginResponse != null && loginResponse.status && !loginResponse.usuario.isNullOrEmpty()) {
+                                        Log.d("LOGIN_SUCCESS", "Login bem-sucedido: ${loginResponse.usuario[0].nome}")
+                                        navController.navigate("home")
+                                    } else {
+                                        errorMessage = errorInvalidCredentials
+                                    }
+                                } else {
+                                    Log.e("LOGIN_ERROR", "Erro ${response.code()}: ${response.errorBody()?.string()}")
+                                    errorMessage = errorInvalidCredentials
+                                }
+                            } catch (e: Exception) {
+                                Log.e("LOGIN_CONNECTION", "Falha de conexão: ${e.message}", e)
+                                errorMessage = "Falha na conexão. Tente novamente."
+                            }
+                        }
                     }
                 },
                 modifier = Modifier
@@ -212,18 +238,5 @@ fun LoginScreen(
                 modifier = Modifier.clickable { onCreateAccountClick() }
             )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    MobileGYMBUDDYTheme {
-        LoginScreen(
-            navController = rememberNavController(),
-            onLoginClick = {},
-            onForgotPasswordClick = {},
-            onCreateAccountClick = {}
-        )
     }
 }

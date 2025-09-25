@@ -26,4 +26,5 @@
     <string name="error_emails_not_matching">E-mails não coincidem.</string>
     <string name="error_passwords_not_matching">Senhas não coincidem.</string>
     <string name="error_password_requirements">Senha deve ter 8 caracteres, um maiúsculo, um número e um caractere especial.</string>
+    <string name="error_invalid_credentials">E-mail ou senha inválidos.</string>
 </resources>
