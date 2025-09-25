@@ -27,4 +27,19 @@
     <string name="error_passwords_not_matching">Senhas não coincidem.</string>
     <string name="error_password_requirements">Senha deve ter 8 caracteres, um maiúsculo, um número e um caractere especial.</string>
     <string name="error_invalid_credentials">E-mail ou senha inválidos.</string>
+    <string name="imc_title">CÁLCULO IMC</string>
+    <string name="your_weight">Seu peso</string>
+    <string name="kg_unit">kg</string>
+    <string name="your_height">Sua altura</string>
+    <string name="m_unit">m</string>
+    <string name="calculate">CALCULAR</string>
+    <string name="your_imc_is">Seu IMC é</string>
+    <string name="next">Avançar</string>
+    <string name="imc_underweight">Abaixo do peso</string>
+    <string name="imc_ideal_weight">Peso Ideal</string>
+    <string name="imc_slightly_overweight">Levemente acima do peso</string>
+    <string name="imc_obesity_1">Obesidade Grau I</string>
+    <string name="imc_obesity_2">Obesidade Grau II (Severa)</string>
+    <string name="imc_obesity_3">Obesidade Grau III (Mórbida)</string>
+    <string name="imc_message">Seu IMC é %1$.1f</string>
 </resources>
