@@ -1,6 +1,6 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
-import Usuario
+import senai.sp.jandira.mobile_gymbuddy.data.model.Usuario
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
