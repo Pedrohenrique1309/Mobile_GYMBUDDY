@@ -3,11 +3,12 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import senai.sp.jandira.mobile_gymbuddy.data.service.UsuarioService
-import com.google.gson.GsonBuilder // Importe o GsonBuilder
+import com.google.gson.GsonBuilder
 
 object RetrofitFactory {
 
-    private const val BASE_URL = "http://192.168.56.1:8080/"
+    // MODIFICADO AQUI: URL para acesso do emulador ao localhost do computador
+    private const val BASE_URL = "http://10.0.2.2:8080/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -17,14 +18,13 @@ object RetrofitFactory {
         .addInterceptor(loggingInterceptor)
         .build()
 
-    // Crie o Gson com o GsonBuilder e ative a anotação Expose
     private val gson = GsonBuilder()
-        .excludeFieldsWithoutExposeAnnotation()
+        //.excludeFieldsWithoutExposeAnnotation()
         .create()
 
     private val retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
-        .addConverterFactory(GsonConverterFactory.create(gson)) // Use o objeto gson aqui
+        .addConverterFactory(GsonConverterFactory.create(gson))
         .client(httpClient)
         .build()
 
