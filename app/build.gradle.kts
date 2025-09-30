@@ -51,21 +51,16 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-
     implementation(libs.androidx.material.icons.extended)
-
-    implementation (libs.retrofit)
-    implementation (libs.converter.gson)
-
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.runtime.android)
-
-    implementation("com.squareup.okhttp3:logging-interceptor:5.1.0")
-
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
-
-
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(  libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.coil.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
