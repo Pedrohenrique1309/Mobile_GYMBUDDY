@@ -39,7 +39,9 @@ data class Comment(
     val id: Int,
     val userName: String,
     val userProfileImage: Int,
-    val text: String
+    val text: String,
+    val initialLikes: Int,
+    val isInitiallyLiked: Boolean
 )
 
 data class Post(
@@ -62,8 +64,8 @@ val mockApiData = listOf(
         gymName = "Academia BlaBlaBla", caption = "O de hoje tá feito, um passo de cada vez! 🙏",
         initialLikes = 132, isInitiallyLiked = true,
         comments = mutableListOf(
-            Comment(1, "@MailtonJose", R.drawable.profile_placeholder, "É isso aí, mestre!"),
-            Comment(2, "@AnaFitness", R.drawable.profile_placeholder, "Boraaa! 💪")
+            Comment(1, "@MailtonJose", R.drawable.profile_placeholder, "É isso aí, mestre!", 15, true),
+            Comment(2, "@AnaFitness", R.drawable.profile_placeholder, "Boraaa! 💪", 2, false)
         )
     ),
     Post(
@@ -71,7 +73,7 @@ val mockApiData = listOf(
         gymName = "Academia Body Space", caption = "Projeto verão continua firme! #foco",
         initialLikes = 254, isInitiallyLiked = false,
         comments = mutableListOf(
-            Comment(3, "@TreinadorJonas", R.drawable.profile_placeholder, "Continue focado!")
+            Comment(3, "@TreinadorJonas", R.drawable.profile_placeholder, "Continue focado!", 8, false)
         )
     ),
     Post(
@@ -123,17 +125,44 @@ fun HomeScreen(navController: NavController) {
                 items.forEachIndexed { index, item ->
                     NavigationBarItem(
                         icon = {
+                            // Define a cor baseada no estado de seleção do item
+                            val iconColor = if (selectedItem == index) {
+                                MaterialTheme.colorScheme.secondary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+
                             when (item) {
-                                "Home" -> Icon(Icons.Filled.Home, contentDescription = item)
-                                "Treinos" -> Icon(Icons.Default.FitnessCenter, contentDescription = item)
-                                "Conquistas" -> Icon(Icons.Default.SmartToy, contentDescription = item)
+                                "Home" -> Icon(
+                                    imageVector = Icons.Filled.Home,
+                                    contentDescription = item,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = iconColor // Aplica a cor dinâmica
+                                )
+                                "Treinos" -> Icon(
+                                    imageVector = Icons.Default.FitnessCenter,
+                                    contentDescription = item,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = iconColor // Aplica a cor dinâmica
+                                )
+                                "Conquistas" -> Icon(
+                                    imageVector = Icons.Default.SmartToy,
+                                    contentDescription = item,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = iconColor // Aplica a cor dinâmica
+                                )
                                 "Perfil" -> {
                                     BadgedBox(
                                         badge = {
                                             Badge { Text("3") }
                                         }
                                     ) {
-                                        Icon(Icons.Filled.Person, contentDescription = "Perfil com notificação")
+                                        Icon(
+                                            imageVector = Icons.Filled.Person,
+                                            contentDescription = "Perfil com notificação",
+                                            modifier = Modifier.size(28.dp),
+                                            tint = iconColor // Aplica a cor dinâmica
+                                        )
                                     }
                                 }
                             }
@@ -173,7 +202,9 @@ fun HomeScreen(navController: NavController) {
                             id = (0..10000).random(),
                             userName = "@UsuarioLogado",
                             userProfileImage = R.drawable.profile_placeholder,
-                            text = newCommentText
+                            text = newCommentText,
+                            initialLikes = 0,
+                            isInitiallyLiked = false
                         )
                         selectedPostForComments?.comments?.add(newComment)
                     }
@@ -209,9 +240,6 @@ fun PostItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(post.userName, fontWeight = FontWeight.Bold)
                 Text(post.gymName, fontSize = 12.sp, color = Color.Gray)
-            }
-            IconButton(onClick = { /* Mais opções */ }) {
-                Icon(Icons.Default.MoreVert, contentDescription = "Mais opções")
             }
         }
 
@@ -292,6 +320,7 @@ fun CommentsSheetContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // ***** AQUI ESTÁ A PARTE DE ADICIONAR COMENTÁRIOS *****
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -324,24 +353,62 @@ fun CommentsSheetContent(
 // =================================================================================
 @Composable
 fun CommentItem(comment: Comment) {
-    Row(verticalAlignment = Alignment.Top) {
-        Image(
-            painter = painterResource(id = comment.userProfileImage),
-            contentDescription = "Foto de ${comment.userName}",
-            modifier = Modifier.size(32.dp).clip(CircleShape)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(comment.userName)
-                    }
-                    append(" ")
-                    append(comment.text)
-                },
-                style = MaterialTheme. typography.bodyMedium
+    var isLiked by remember { mutableStateOf(comment.isInitiallyLiked) }
+    var likesCount by remember { mutableStateOf(comment.initialLikes) }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.Top,
+            modifier = Modifier.weight(1f)
+        ) {
+            Image(
+                painter = painterResource(id = comment.userProfileImage),
+                contentDescription = "Foto de ${comment.userName}",
+                modifier = Modifier.size(32.dp).clip(CircleShape)
             )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(comment.userName)
+                        }
+                        append(" ")
+                        append(comment.text)
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(start = 8.dp)
+        ) {
+            IconButton(
+                onClick = {
+                    isLiked = !isLiked
+                    if (isLiked) likesCount++ else likesCount--
+                },
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = "Curtir comentário",
+                    tint = if (isLiked) MaterialTheme.colorScheme.secondary else Color.Gray
+                )
+            }
+            if (likesCount > 0) {
+                Text(
+                    text = likesCount.toString(),
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
         }
     }
 }
@@ -353,15 +420,11 @@ fun CommentItem(comment: Comment) {
 @Preview(name = "Light Mode", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO)
 @Composable
 fun HomeScreenLightPreview() {
-    MobileGYMBUDDYTheme(darkTheme = false) {
-        HomeScreen(navController = rememberNavController())
-    }
+    MobileGYMBUDDYTheme(darkTheme = false) { HomeScreen(navController = rememberNavController()) }
 }
 
 @Preview(name = "Dark Mode", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun HomeScreenDarkPreview() {
-    MobileGYMBUDDYTheme(darkTheme = true) {
-        HomeScreen(navController = rememberNavController())
-    }
+    MobileGYMBUDDYTheme(darkTheme = true) { HomeScreen(navController = rememberNavController()) }
 }
