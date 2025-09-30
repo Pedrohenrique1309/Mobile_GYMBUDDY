@@ -17,9 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import kotlinx.coroutines.delay
 import senai.sp.jandira.mobile_gymbuddy.screens.HomeScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.ImcScreen // <-- MUDANÇA: Importe da nova tela
@@ -68,9 +70,12 @@ class MainActivity : ComponentActivity() {
                                 HomeScreen(navController = navController)
                             }
 
-                            // MUDANÇA: Adicionada a nova rota para a tela de IMC
-                            composable("imc") {
-                                ImcScreen(navController = navController)
+                            composable(
+                                route = "imc/{email}",
+                                arguments = listOf(navArgument("email") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val email = backStackEntry.arguments?.getString("email")
+                                ImcScreen(navController = navController, email = email)
                             }
                         }
                     }

@@ -1,5 +1,6 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
+import android.util.Log // <-- ADICIONE ESTE IMPORT
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -22,26 +23,27 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import senai.sp.jandira.mobile_gymbuddy.R
+// ADICIONE ESTES IMPORTS
+import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioUpdateRequest
+// FIM DOS IMPORTS ADICIONAIS
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ImcScreen(navController: NavController) {
+// MODIFICAÇÃO 1: Adicione o parâmetro 'email'
+fun ImcScreen(navController: NavController, email: String?) {
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
     val monoFont = FontFamily.Monospace
 
-    // Estados para os campos de texto
     var peso by remember { mutableStateOf("") }
     var altura by remember { mutableStateOf("") }
 
-    // Estados para o Scaffold e Coroutine
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Scaffold é necessário para exibir o Snackbar
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         modifier = Modifier.fillMaxSize(),
@@ -50,32 +52,28 @@ fun ImcScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding) // Aplica o padding interno do Scaffold
+                .padding(innerPadding)
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center // Centraliza todo o conteúdo
+            verticalArrangement = Arrangement.Center
         ) {
-            // Seção do Logo e Título
+            // Seus componentes de UI (Image, Text, OutlinedTextField) continuam aqui...
+            // Nenhuma mudança necessária neles.
             val logoRes = if (isDarkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
             Image(
                 painter = painterResource(id = logoRes),
                 contentDescription = stringResource(id = R.string.logo_description),
                 modifier = Modifier.size(150.dp)
             )
-
             Spacer(modifier = Modifier.height(32.dp))
-
             Text(
                 text = stringResource(id = R.string.imc_title),
                 fontFamily = monoFont,
                 fontSize = 32.sp,
                 color = textColor
             )
-
             Spacer(modifier = Modifier.height(48.dp))
-
-            // Seção dos Campos de Entrada (Inputs)
             OutlinedTextField(
                 value = peso,
                 onValueChange = { novoValor ->
@@ -94,9 +92,7 @@ fun ImcScreen(navController: NavController) {
                     unfocusedBorderColor = secondaryLight
                 )
             )
-
             Spacer(modifier = Modifier.height(16.dp))
-
             OutlinedTextField(
                 value = altura,
                 onValueChange = { novoValor ->
@@ -115,21 +111,19 @@ fun ImcScreen(navController: NavController) {
                     unfocusedBorderColor = secondaryLight
                 )
             )
-
             Spacer(modifier = Modifier.height(48.dp))
 
             // Seção do Botão de Ação
             Button(
+                // MODIFICAÇÃO 2: Atualize a lógica do onClick
                 onClick = {
                     val pesoDouble = peso.toDoubleOrNull()
                     val alturaDouble = altura.toDoubleOrNull()
 
-                    if (pesoDouble != null && alturaDouble != null && alturaDouble > 0) {
-                        // Inicia uma coroutine para tarefas assíncronas
+                    // Adicione a verificação do e-mail
+                    if (pesoDouble != null && alturaDouble != null && alturaDouble > 0 && email != null) {
                         scope.launch {
                             val imc = pesoDouble / (alturaDouble * alturaDouble)
-
-                            // Prepara a mensagem usando o recurso de string
                             val mensagem = navController.context.getString(R.string.imc_message, imc)
 
                             // 1. Mostra a mensagem do IMC no Snackbar
@@ -137,6 +131,20 @@ fun ImcScreen(navController: NavController) {
                                 message = mensagem,
                                 duration = SnackbarDuration.Long
                             )
+
+                            // LÓGICA ADICIONADA: Faz a chamada à API para atualizar o usuário
+                            try {
+                                val requestBody = UsuarioUpdateRequest(peso = pesoDouble, altura = alturaDouble)
+                                val response = RetrofitFactory.getUsuarioService().atualizarUsuario(email, requestBody)
+
+                                if (response.isSuccessful) {
+                                    Log.d("API_UPDATE_SUCCESS", "Peso e altura atualizados com sucesso!")
+                                } else {
+                                    Log.e("API_UPDATE_ERROR", "Erro ao atualizar usuário: ${response.code()}")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("API_UPDATE_EXCEPTION", "Falha de conexão ao atualizar: ${e.message}")
+                            }
 
                             // 2. Espera 5 segundos
                             delay(5000)
@@ -147,8 +155,10 @@ fun ImcScreen(navController: NavController) {
                     } else {
                         // Lógica de erro caso os campos estejam inválidos ou vazios
                         scope.launch {
+                            val errorMessage = if (email == null) "Erro: Email do usuário não encontrado."
+                            else "Por favor, preencha o peso e a altura corretamente."
                             snackbarHostState.showSnackbar(
-                                message = "Por favor, preencha o peso e a altura corretamente.",
+                                message = errorMessage,
                                 duration = SnackbarDuration.Short
                             )
                         }
@@ -169,7 +179,7 @@ fun ImcScreen(navController: NavController) {
 @Composable
 fun ImcScreenPreview() {
     MobileGYMBUDDYTheme {
-        ImcScreen(navController = rememberNavController())
+        // MODIFICAÇÃO 3: Passe um email para o preview funcionar
+        ImcScreen(navController = rememberNavController(), email = "teste@preview.com")
     }
 }
-
