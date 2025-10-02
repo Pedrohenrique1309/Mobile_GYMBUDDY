@@ -1,13 +1,13 @@
-package senai.sp.jandira.mobile_gymbuddy.data.service
-
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import senai.sp.jandira.mobile_gymbuddy.data.service.UsuarioService
 import com.google.gson.GsonBuilder
 
 object RetrofitFactory {
 
+    // MODIFICADO AQUI: URL para acesso do emulador ao localhost do computador
     private const val BASE_URL = "http://10.0.2.2:8080/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -19,6 +19,7 @@ object RetrofitFactory {
         .build()
 
     private val gson = GsonBuilder()
+        //.excludeFieldsWithoutExposeAnnotation()
         .create()
 
     private val retrofit = Retrofit.Builder()
