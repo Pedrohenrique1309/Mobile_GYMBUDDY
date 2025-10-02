@@ -32,9 +32,13 @@ import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.data.model.Publicacao
+import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioApi
+import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioRequest
 import kotlinx.coroutines.launch
 import android.util.Log
 import androidx.compose.ui.text.withStyle
+import java.text.SimpleDateFormat
+import java.util.*
 
 // =================================================================================
 // 1. MODELOS DE DADOS
@@ -89,18 +93,29 @@ val mockApiData = listOf(
 )
 
 // =================================================================================
-// 3. FUNÇÃO DE MAPEAMENTO DA API PARA UI
+// 3. FUNÇÕES DE MAPEAMENTO DA API PARA UI
 // =================================================================================
 fun mapPublicacaoToPost(publicacao: Publicacao): Post {
     return Post(
         id = publicacao.id,
-        userName = "@Usuario${publicacao.idUser}", // Nome fictício baseado no ID
+        userName = "@user${publicacao.idUser}", // Nome baseado no ID do usuário
         userProfileImage = R.drawable.profile_placeholder,
         gymName = publicacao.localizacao,
         caption = publicacao.descricao,
         initialLikes = publicacao.curtidasCount,
         isInitiallyLiked = false,
         comments = mutableListOf()
+    )
+}
+
+fun mapComentarioApiToComment(comentarioApi: ComentarioApi): Comment {
+    return Comment(
+        id = comentarioApi.id,
+        userName = "@user${comentarioApi.idUser}", // Nome baseado no ID do usuário
+        userProfileImage = R.drawable.profile_placeholder,
+        text = comentarioApi.conteudo,
+        initialLikes = 0, // A API não retorna likes dos comentários
+        isInitiallyLiked = false
     )
 }
 
@@ -419,6 +434,34 @@ fun CommentsSheetContent(
 ) {
     var newCommentText by remember { mutableStateOf("") }
     val isSendEnabled = newCommentText.isNotBlank()
+    var isLoadingComments by remember { mutableStateOf(true) }
+    var isSendingComment by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Carregar comentários da API
+    LaunchedEffect(post.id) {
+        coroutineScope.launch {
+            try {
+                val comentarioService = RetrofitFactory.getComentarioService()
+                val response = comentarioService.getComentarios(post.id)
+                
+                if (response.isSuccessful && response.body() != null) {
+                    val comentarioResponse = response.body()!!
+                    if (comentarioResponse.status) {
+                        val commentsFromApi = comentarioResponse.comentarios.map { 
+                            mapComentarioApiToComment(it) 
+                        }
+                        post.comments.clear()
+                        post.comments.addAll(commentsFromApi)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CommentsSheet", "Erro ao carregar comentários", e)
+            } finally {
+                isLoadingComments = false
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -428,10 +471,18 @@ fun CommentsSheetContent(
     ) {
         Text("Comentários", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 16.dp))
 
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            items(post.comments) { comment ->
-                CommentItem(comment = comment)
-                Spacer(modifier = Modifier.height(12.dp))
+        Box(modifier = Modifier.weight(1f)) {
+            if (isLoadingComments) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                LazyColumn {
+                    items(post.comments) { comment ->
+                        CommentItem(comment = comment)
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
             }
         }
 
@@ -445,20 +496,66 @@ fun CommentsSheetContent(
                 value = newCommentText,
                 onValueChange = { newCommentText = it },
                 label = { Text("Adicione um comentário...") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                enabled = !isSendingComment
             )
             IconButton(
                 onClick = {
-                    onAddComment(newCommentText)
-                    newCommentText = ""
+                    isSendingComment = true
+                    coroutineScope.launch {
+                        try {
+                            val comentarioService = RetrofitFactory.getComentarioService()
+                            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                            val currentDate = dateFormat.format(Date())
+                            
+                            val novoComentario = ComentarioRequest(
+                                conteudo = newCommentText,
+                                dataComentario = currentDate,
+                                idPublicacao = post.id,
+                                idUser = 1 // TODO: Pegar ID do usuário logado
+                            )
+                            
+                            Log.d("CommentsSheet", "Enviando comentário: $novoComentario")
+                            val response = comentarioService.criarComentario(novoComentario)
+                            Log.d("CommentsSheet", "Resposta: código=${response.code()}, sucesso=${response.isSuccessful}")
+                            
+                            if (response.isSuccessful) {
+                                // Adicionar comentário localmente
+                                val newComment = Comment(
+                                    id = (0..10000).random(),
+                                    userName = "@user1", // TODO: Pegar nome do usuário logado
+                                    userProfileImage = R.drawable.profile_placeholder,
+                                    text = newCommentText,
+                                    initialLikes = 0,
+                                    isInitiallyLiked = false
+                                )
+                                post.comments.add(newComment)
+                                newCommentText = ""
+                                onAddComment(newComment.text)
+                            } else {
+                                Log.e("CommentsSheet", "Erro ao enviar comentário: ${response.code()}")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("CommentsSheet", "Erro ao enviar comentário", e)
+                        } finally {
+                            isSendingComment = false
+                        }
+                    }
                 },
-                enabled = isSendEnabled
+                enabled = isSendEnabled && !isSendingComment
             ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = "Enviar comentário",
-                    tint = if (isSendEnabled) MaterialTheme.colorScheme.secondary else Color.Gray
-                )
+                if (isSendingComment) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = "Enviar comentário",
+                        tint = if (isSendEnabled) MaterialTheme.colorScheme.secondary else Color.Gray
+                    )
+                }
             }
         }
     }

@@ -6,6 +6,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import senai.sp.jandira.mobile_gymbuddy.data.service.UsuarioService
 import senai.sp.jandira.mobile_gymbuddy.data.service.PublicacaoService
+import senai.sp.jandira.mobile_gymbuddy.data.service.ComentarioService
 import com.google.gson.GsonBuilder
 
 object RetrofitFactory {
@@ -37,5 +38,9 @@ object RetrofitFactory {
 
     fun getPublicacaoService(): PublicacaoService {
         return retrofit.create(PublicacaoService::class.java)
+    }
+
+    fun getComentarioService(): ComentarioService {
+        return retrofit.create(ComentarioService::class.java)
     }
 }
