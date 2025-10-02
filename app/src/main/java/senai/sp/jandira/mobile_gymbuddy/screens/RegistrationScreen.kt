@@ -1,6 +1,7 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
 import senai.sp.jandira.mobile_gymbuddy.data.model.Usuario
+import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically

@@ -1,8 +1,11 @@
+package senai.sp.jandira.mobile_gymbuddy.data.service
+
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import senai.sp.jandira.mobile_gymbuddy.data.service.UsuarioService
+import senai.sp.jandira.mobile_gymbuddy.data.service.PublicacaoService
 import com.google.gson.GsonBuilder
 
 object RetrofitFactory {
@@ -30,5 +33,9 @@ object RetrofitFactory {
 
     fun getUsuarioService(): UsuarioService {
         return retrofit.create(UsuarioService::class.java)
+    }
+
+    fun getPublicacaoService(): PublicacaoService {
+        return retrofit.create(PublicacaoService::class.java)
     }
 }
