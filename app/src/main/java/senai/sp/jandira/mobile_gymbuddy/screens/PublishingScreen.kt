@@ -1,5 +1,9 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
+import android.content.res.Configuration.UI_MODE_NIGHT_YES
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,20 +30,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import senai.sp.jandira.mobile_gymbuddy.R
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.content.Intent
-import android.net.Uri
-import android.provider.MediaStore
 import androidx.core.content.FileProvider
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import senai.sp.jandira.mobile_gymbuddy.R
+import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
-import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +54,7 @@ fun PublishingScreen(navController: NavController) {
     val darkTheme = isSystemInDarkTheme()
     val sheetState = rememberModalBottomSheetState()
     val context = LocalContext.current
-    
+
     // Criar arquivo temporário para a foto
     val createImageFile = {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -61,7 +63,7 @@ fun PublishingScreen(navController: NavController) {
         if (!storageDir.exists()) storageDir.mkdirs()
         File.createTempFile(imageFileName, ".jpg", storageDir)
     }
-    
+
     // Launcher para câmera (foto)
     val cameraPhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -71,7 +73,7 @@ fun PublishingScreen(navController: NavController) {
         }
         showImagePickerSheet = false
     }
-    
+
     // Launcher para câmera (vídeo)
     val cameraVideoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CaptureVideo()
@@ -81,7 +83,7 @@ fun PublishingScreen(navController: NavController) {
         }
         showImagePickerSheet = false
     }
-    
+
     // Launcher para galeria
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -89,11 +91,11 @@ fun PublishingScreen(navController: NavController) {
         selectedImageUri = uri
         showImagePickerSheet = false
     }
-    
+
     val logoRes = if (darkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
     val backgroundColor = if (darkTheme) Color.Black else Color.White
     val surfaceColor = if (darkTheme) Color(0xFF2A2A2A) else Color(0xFFE0E0E0)
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -118,23 +120,23 @@ fun PublishingScreen(navController: NavController) {
                     modifier = Modifier.size(28.dp)
                 )
             }
-            
+
             Text(
                 text = "NOVA PUBLICAÇÃO",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (darkTheme) Color.White else Color.Black
             )
-            
+
             Image(
                 painter = painterResource(id = logoRes),
                 contentDescription = "Logo",
                 modifier = Modifier.height(60.dp)
             )
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         // Área da imagem
         Box(
             modifier = Modifier
@@ -166,9 +168,9 @@ fun PublishingScreen(navController: NavController) {
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         // Label Descrição
         Text(
             text = "Descrição:",
@@ -177,22 +179,22 @@ fun PublishingScreen(navController: NavController) {
             color = Color.Red,
             modifier = Modifier.fillMaxWidth()
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         // Campo de descrição
         OutlinedTextField(
             value = description,
-            onValueChange = { 
+            onValueChange = {
                 if (it.length <= 800) {
                     description = it
                 }
             },
-            placeholder = { 
+            placeholder = {
                 Text(
                     text = "Crie uma descrição para sua publicação...",
                     color = Color.Gray
-                ) 
+                )
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -205,18 +207,20 @@ fun PublishingScreen(navController: NavController) {
             ),
             shape = RoundedCornerShape(12.dp)
         )
-        
+
         // Contador de caracteres
         Text(
             text = "${description.length}/800",
             fontSize = 12.sp,
             color = Color.Gray,
             textAlign = TextAlign.End,
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // Botão de localização
         OutlinedButton(
             onClick = { /* TODO: Abrir seletor de localização */ },
@@ -241,16 +245,16 @@ fun PublishingScreen(navController: NavController) {
                 fontSize = 14.sp
             )
         }
-        
+
         Spacer(modifier = Modifier.weight(1f))
-        
+
         // Botão Publicar
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
             Button(
-                onClick = { 
+                onClick = {
                     // TODO: Implementar lógica de publicação
                     navController.popBackStack()
                 },
@@ -270,10 +274,10 @@ fun PublishingScreen(navController: NavController) {
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
     }
-    
+
     // Bottom Sheet para seleção de imagem
     if (showImagePickerSheet) {
         ModalBottomSheet(
@@ -284,7 +288,7 @@ fun PublishingScreen(navController: NavController) {
         ) {
             ImagePickerBottomSheetContent(
                 onDismiss = { showImagePickerSheet = false },
-                onCameraClick = { 
+                onCameraClick = {
                     try {
                         val imageFile = createImageFile()
                         photoUri = FileProvider.getUriForFile(
@@ -297,10 +301,10 @@ fun PublishingScreen(navController: NavController) {
                         showImagePickerSheet = false
                     }
                 },
-                onGalleryClick = { 
+                onGalleryClick = {
                     galleryLauncher.launch("image/*")
                 },
-                onVideoClick = { 
+                onVideoClick = {
                     try {
                         val videoFile = createImageFile() // Reutilizando a função, mas para vídeo
                         photoUri = FileProvider.getUriForFile(
@@ -349,9 +353,9 @@ fun ImagePickerBottomSheetContent(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // Grid de opções
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -366,7 +370,7 @@ fun ImagePickerBottomSheetContent(
                     modifier = Modifier
                         .size(80.dp)
                         .background(
-                            Color.Red,
+                            color = secondaryLight,
                             RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -386,7 +390,7 @@ fun ImagePickerBottomSheetContent(
                     color = if (darkTheme) Color.White else Color.Black
                 )
             }
-            
+
             // Opção VÍDEO
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -396,7 +400,7 @@ fun ImagePickerBottomSheetContent(
                     modifier = Modifier
                         .size(80.dp)
                         .background(
-                            Color.Red,
+                            color = secondaryLight,
                             RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -416,7 +420,7 @@ fun ImagePickerBottomSheetContent(
                     color = if (darkTheme) Color.White else Color.Black
                 )
             }
-            
+
             // Opção GALERIA
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -426,7 +430,7 @@ fun ImagePickerBottomSheetContent(
                     modifier = Modifier
                         .size(80.dp)
                         .background(
-                            Color.Red,
+                            color = secondaryLight,
                             RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -447,7 +451,52 @@ fun ImagePickerBottomSheetContent(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(32.dp))
     }
+}
+
+
+// =================================================================================
+// PREVIEWS
+// =================================================================================
+
+// Preview para o Modo Claro (Light Mode)
+@Preview(
+    name = "Light Mode",
+    showBackground = true
+)
+@Composable
+fun PublishingScreenPreviewLight() {
+    // Usamos rememberNavController() para simular o NavController no preview
+    val navController = rememberNavController()
+    PublishingScreen(navController = navController)
+}
+
+// Preview para o Modo Escuro (Dark Mode)
+@Preview(
+    name = "Dark Mode",
+    showBackground = true,
+    uiMode = UI_MODE_NIGHT_YES // Configuração que força o tema escuro
+)
+@Composable
+fun PublishingScreenPreviewDark() {
+    val navController = rememberNavController()
+    PublishingScreen(navController = navController)
+}
+
+// Preview apenas para o conteúdo do Bottom Sheet
+@Preview(
+    name = "Image Picker Bottom Sheet",
+    showBackground = true
+)
+@Composable
+fun ImagePickerBottomSheetContentPreview() {
+    ImagePickerBottomSheetContent(
+        onDismiss = {},
+        onCameraClick = {},
+        onGalleryClick = {},
+        onVideoClick = {},
+        darkTheme = false // Mude para true para ver a versão escura
+    )
 }
