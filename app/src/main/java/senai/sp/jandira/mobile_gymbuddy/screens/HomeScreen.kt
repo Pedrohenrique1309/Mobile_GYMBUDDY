@@ -248,6 +248,22 @@ fun HomeScreen(navController: NavController) {
                     )
                 }
             }
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { 
+                    navController.navigate("publishing")
+                },
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
+                modifier = Modifier.size(56.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Nova publicação",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     ) { innerPadding ->
         Box(

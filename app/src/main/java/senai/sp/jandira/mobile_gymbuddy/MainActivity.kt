@@ -22,9 +22,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import senai.sp.jandira.mobile_gymbuddy.screens.HomeScreen
-import senai.sp.jandira.mobile_gymbuddy.screens.ImcScreen // <-- MUDANÇA: Importe da nova tela
+import senai.sp.jandira.mobile_gymbuddy.screens.ImcScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.LoginScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.PasswordRecoveryScreen
+import senai.sp.jandira.mobile_gymbuddy.screens.PublishingScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.RegistrationScreen
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 
@@ -71,6 +72,10 @@ class MainActivity : ComponentActivity() {
                             // MUDANÇA: Adicionada a nova rota para a tela de IMC
                             composable("imc") {
                                 ImcScreen(navController = navController)
+                            }
+                            
+                            composable("publishing") {
+                                PublishingScreen(navController = navController)
                             }
                         }
                     }
