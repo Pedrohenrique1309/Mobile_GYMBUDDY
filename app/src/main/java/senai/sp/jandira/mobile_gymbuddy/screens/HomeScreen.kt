@@ -40,6 +40,7 @@ import android.util.Log
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.withStyle
 import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
+import coil.compose.AsyncImage
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -49,7 +50,7 @@ import java.util.*
 data class Comment(
     val id: Int,
     val userName: String,
-    val userProfileImage: Int,
+    val userProfileImageUrl: String?, // URL da imagem do usuário
     val text: String,
     val initialLikes: Int,
     val isInitiallyLiked: Boolean
@@ -59,6 +60,7 @@ data class Post(
     val id: Int,
     val userName: String,
     val userProfileImage: Int,
+    val postImageUrl: String?, // URL da imagem da publicação
     val gymName: String,
     val caption: String,
     val initialLikes: Int,
@@ -72,23 +74,26 @@ data class Post(
 val mockApiData = listOf(
     Post(
         id = 1, userName = "@TreinadorJonas", userProfileImage = R.drawable.profile_placeholder,
+        postImageUrl = "https://via.placeholder.com/400x400/FF6B6B/FFFFFF?text=Treino+1",
         gymName = "Academia BlaBlaBla", caption = "O de hoje tá feito, um passo de cada vez! 🙏",
         initialLikes = 132, isInitiallyLiked = true,
         comments = mutableListOf(
-            Comment(1, "@MailtonJose", R.drawable.profile_placeholder, "É isso aí, mestre!", 15, true),
-            Comment(2, "@AnaFitness", R.drawable.profile_placeholder, "Boraaa! 💪", 2, false)
+            Comment(1, "@MailtonJose", "https://via.placeholder.com/150", "É isso aí, mestre!", 15, true),
+            Comment(2, "@AnaFitness", null, "Boraaa! 💪", 2, false)
         )
     ),
     Post(
         id = 2, userName = "@MailtonJose", userProfileImage = R.drawable.profile_placeholder,
+        postImageUrl = "https://via.placeholder.com/400x400/4ECDC4/FFFFFF?text=Treino+2",
         gymName = "Academia Body Space", caption = "Projeto verão continua firme! #foco",
         initialLikes = 254, isInitiallyLiked = false,
         comments = mutableListOf(
-            Comment(3, "@TreinadorJonas", R.drawable.profile_placeholder, "Continue focado!", 8, false)
+            Comment(3, "@TreinadorJonas", null, "Continue focado!", 8, false)
         )
     ),
     Post(
         id = 3, userName = "@AnaFitness", userProfileImage = R.drawable.profile_placeholder,
+        postImageUrl = "https://via.placeholder.com/400x400/45B7D1/FFFFFF?text=Treino+3",
         gymName = "Gym Power", caption = "Novo recorde pessoal no agachamento! 💪",
         initialLikes = 589, isInitiallyLiked = false,
         comments = mutableListOf()
@@ -110,6 +115,7 @@ fun mapPublicacaoToPost(publicacao: Publicacao): Post {
         id = publicacao.id,
         userName = userName,
         userProfileImage = R.drawable.profile_placeholder,
+        postImageUrl = publicacao.imagem, // Mapear a URL da imagem da publicação
         gymName = publicacao.localizacao,
         caption = publicacao.descricao,
         initialLikes = publicacao.curtidasCount,
@@ -119,19 +125,32 @@ fun mapPublicacaoToPost(publicacao: Publicacao): Post {
 }
 
 fun mapComentarioApiToComment(comentarioApi: ComentarioApi, context: Context): Comment {
-    // Pegar o nickname do primeiro usuário do array, ou usar fallback
+    // Pegar o nickname e foto do primeiro usuário do array, ou usar fallback
     val userName = if (comentarioApi.user.isNotEmpty()) {
         "@${comentarioApi.user[0].nickname}"
     } else {
         "@user${comentarioApi.idUser}"
     }
     
-    Log.d("MapComment", "Comentário ID: ${comentarioApi.id}, UserID da API: ${comentarioApi.idUser}, UserName da API: $userName")
+    val userProfileImageUrl = if (comentarioApi.user.isNotEmpty()) {
+        comentarioApi.user[0].foto
+    } else {
+        null
+    }
+    
+    Log.d("MapComment", "=== DEBUG COMENTÁRIO ===")
+    Log.d("MapComment", "Comentário ID: ${comentarioApi.id}")
+    Log.d("MapComment", "UserID da API: ${comentarioApi.idUser}")
+    Log.d("MapComment", "UserName da API: $userName")
+    Log.d("MapComment", "Foto URL: '$userProfileImageUrl'")
+    Log.d("MapComment", "Foto é null? ${userProfileImageUrl == null}")
+    Log.d("MapComment", "Foto é vazia? ${userProfileImageUrl?.isEmpty()}")
+    Log.d("MapComment", "========================")
     
     return Comment(
         id = comentarioApi.id,
         userName = userName,
-        userProfileImage = R.drawable.profile_placeholder,
+        userProfileImageUrl = userProfileImageUrl,
         text = comentarioApi.conteudo,
         initialLikes = 0, // A API não retorna likes dos comentários
         isInitiallyLiked = false
@@ -389,7 +408,24 @@ fun PostItem(
             }
         }
 
-        Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant))
+        AsyncImage(
+            model = post.postImageUrl,
+            contentDescription = "Imagem da publicação",
+            modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(id = R.drawable.profile_placeholder),
+            error = painterResource(id = R.drawable.profile_placeholder),
+            onSuccess = { 
+                Log.d("PostImage", "✅ Imagem da publicação carregada: ${post.postImageUrl}")
+            },
+            onError = { error ->
+                Log.e("PostImage", "❌ Erro ao carregar imagem da publicação: ${post.postImageUrl}")
+                Log.e("PostImage", "Erro: ${error.result.throwable.message}")
+            },
+            onLoading = {
+                Log.d("PostImage", "🔄 Carregando imagem da publicação: ${post.postImageUrl}")
+            }
+        )
 
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
             IconButton(onClick = {
@@ -466,15 +502,21 @@ fun CommentsSheetContent(
                     if (response.isSuccessful && response.body() != null) {
                         val comentarioResponse = response.body()!!
                         if (comentarioResponse.status) {
-                            val commentsFromApi = comentarioResponse.comentarios.map { 
-                                mapComentarioApiToComment(it, context) 
+                            Log.d("CommentsSheet", "=== PROCESSANDO COMENTÁRIOS DA API ===")
+                            Log.d("CommentsSheet", "Total de comentários: ${comentarioResponse.comentarios.size}")
+                            
+                            val commentsFromApi = comentarioResponse.comentarios.map { comentarioApi ->
+                                Log.d("CommentsSheet", "Processando comentário ID: ${comentarioApi.id}")
+                                mapComentarioApiToComment(comentarioApi, context) 
                             }
+                            
                             comments.clear()
                             comments.addAll(commentsFromApi)
                             // Também atualizar a lista do post para manter sincronizado
                             post.comments.clear()
                             post.comments.addAll(commentsFromApi)
                             Log.d("CommentsSheet", "Carregados ${commentsFromApi.size} comentários da API")
+                            Log.d("CommentsSheet", "Lista local agora tem ${comments.size} comentários")
                         }
                     }
                 } catch (e: Exception) {
@@ -550,11 +592,14 @@ fun CommentsSheetContent(
                             Log.d("CommentsSheet", "Resposta: código=${response.code()}, sucesso=${response.isSuccessful}")
                             
                             if (response.isSuccessful) {
+                                // Pegar foto do usuário logado (se disponível)
+                                val userPhotoUrl = UserPreferences.getUserPhotoUrl(context)
+                                
                                 // Adicionar comentário imediatamente à lista local observável
                                 val newComment = Comment(
                                     id = (0..10000).random(),
                                     userName = "@$userNickname",
-                                    userProfileImage = R.drawable.profile_placeholder,
+                                    userProfileImageUrl = userPhotoUrl,
                                     text = newCommentText,
                                     initialLikes = 0,
                                     isInitiallyLiked = false
@@ -603,6 +648,13 @@ fun CommentsSheetContent(
 fun CommentItem(comment: Comment) {
     var isLiked by remember { mutableStateOf(comment.isInitiallyLiked) }
     var likesCount by remember { mutableStateOf(comment.initialLikes) }
+    
+    Log.d("CommentItem", "=== RENDERIZANDO COMENTÁRIO ===")
+    Log.d("CommentItem", "ID: ${comment.id}")
+    Log.d("CommentItem", "UserName: ${comment.userName}")
+    Log.d("CommentItem", "Foto URL: '${comment.userProfileImageUrl}'")
+    Log.d("CommentItem", "Texto: ${comment.text}")
+    Log.d("CommentItem", "===============================")
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -613,10 +665,23 @@ fun CommentItem(comment: Comment) {
             verticalAlignment = Alignment.Top,
             modifier = Modifier.weight(1f)
         ) {
-            Image(
-                painter = painterResource(id = comment.userProfileImage),
+            AsyncImage(
+                model = comment.userProfileImageUrl,
                 contentDescription = "Foto de ${comment.userName}",
-                modifier = Modifier.size(32.dp).clip(CircleShape)
+                modifier = Modifier.size(32.dp).clip(CircleShape),
+                placeholder = painterResource(id = R.drawable.profile_placeholder),
+                error = painterResource(id = R.drawable.profile_placeholder),
+                contentScale = ContentScale.Crop,
+                onSuccess = { 
+                    Log.d("AsyncImage", "✅ Imagem carregada com sucesso: ${comment.userProfileImageUrl}")
+                },
+                onError = { error ->
+                    Log.e("AsyncImage", "❌ Erro ao carregar imagem: ${comment.userProfileImageUrl}")
+                    Log.e("AsyncImage", "Erro: ${error.result.throwable.message}")
+                },
+                onLoading = {
+                    Log.d("AsyncImage", "🔄 Carregando imagem: ${comment.userProfileImageUrl}")
+                }
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {

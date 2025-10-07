@@ -204,7 +204,8 @@ fun LoginScreen(
                                             id = usuario.id,
                                             name = usuario.nome,
                                             nickname = usuario.nickname,
-                                            email = usuario.email
+                                            email = usuario.email,
+                                            photoUrl = usuario.foto_perfil
                                         )
                                         
                                         Log.d("LOGIN_SUCCESS", "Login bem-sucedido: ${usuario.nome}")

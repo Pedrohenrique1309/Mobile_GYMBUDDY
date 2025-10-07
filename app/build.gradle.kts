@@ -64,6 +64,9 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:5.1.0")
 
     implementation(libs.okhttp.logging.interceptor)
+    
+    // Coil para carregamento de imagens
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
 
     testImplementation(libs.junit)

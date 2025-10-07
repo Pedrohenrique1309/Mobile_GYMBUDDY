@@ -19,5 +19,5 @@ data class ComentarioApi(
     val idUser: Int,
     
     @SerializedName("user")
-    val user: List<Usuario>
+    val user: List<UsuarioComentario>
 )
