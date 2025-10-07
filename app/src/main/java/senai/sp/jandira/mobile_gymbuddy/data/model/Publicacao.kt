@@ -25,5 +25,8 @@ data class Publicacao(
     val comentariosCount: Int,
     
     @SerializedName("id_user")
-    val idUser: Int
+    val idUser: Int,
+    
+    @SerializedName("user")
+    val user: List<Usuario>
 )

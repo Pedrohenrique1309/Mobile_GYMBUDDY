@@ -96,9 +96,16 @@ val mockApiData = listOf(
 // 3. FUNÇÕES DE MAPEAMENTO DA API PARA UI
 // =================================================================================
 fun mapPublicacaoToPost(publicacao: Publicacao): Post {
+    // Pega o nickname do primeiro usuário do array, ou usa um fallback
+    val userName = if (publicacao.user.isNotEmpty()) {
+        "@${publicacao.user[0].nickname}"
+    } else {
+        "@user${publicacao.idUser}"
+    }
+    
     return Post(
         id = publicacao.id,
-        userName = "@user${publicacao.idUser}", // Nome baseado no ID do usuário
+        userName = userName,
         userProfileImage = R.drawable.profile_placeholder,
         gymName = publicacao.localizacao,
         caption = publicacao.descricao,
