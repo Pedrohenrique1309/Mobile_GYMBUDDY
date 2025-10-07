@@ -1,7 +1,10 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
+import android.content.Context
 import android.util.Log
+import androidx.compose.ui.platform.LocalContext
 import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
+import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -63,6 +66,7 @@ fun LoginScreen(
     val errorInvalidCredentials = stringResource(id = R.string.error_invalid_credentials)
 
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(key1 = errorMessage) {
         if (errorMessage.isNotEmpty()) {
@@ -192,7 +196,18 @@ fun LoginScreen(
                                 if (response.isSuccessful) {
                                     val loginResponse = response.body()
                                     if (loginResponse != null && loginResponse.status && !loginResponse.usuario.isNullOrEmpty()) {
-                                        Log.d("LOGIN_SUCCESS", "Login bem-sucedido: ${loginResponse.usuario[0].nome}")
+                                        val usuario = loginResponse.usuario[0]
+                                        
+                                        // Salvar dados do usuário usando a classe utilitária
+                                        UserPreferences.saveUserData(
+                                            context = context,
+                                            id = usuario.id,
+                                            name = usuario.nome,
+                                            nickname = usuario.nickname,
+                                            email = usuario.email
+                                        )
+                                        
+                                        Log.d("LOGIN_SUCCESS", "Login bem-sucedido: ${usuario.nome}")
                                         navController.navigate("home")
                                     } else {
                                         errorMessage = errorInvalidCredentials

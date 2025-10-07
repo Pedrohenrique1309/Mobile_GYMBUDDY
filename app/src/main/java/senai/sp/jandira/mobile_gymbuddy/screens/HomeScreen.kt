@@ -35,8 +35,11 @@ import senai.sp.jandira.mobile_gymbuddy.data.model.Publicacao
 import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioApi
 import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioRequest
 import kotlinx.coroutines.launch
+import android.content.Context
 import android.util.Log
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.withStyle
+import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -115,10 +118,19 @@ fun mapPublicacaoToPost(publicacao: Publicacao): Post {
     )
 }
 
-fun mapComentarioApiToComment(comentarioApi: ComentarioApi): Comment {
+fun mapComentarioApiToComment(comentarioApi: ComentarioApi, context: Context): Comment {
+    // Pegar o nickname do primeiro usuário do array, ou usar fallback
+    val userName = if (comentarioApi.user.isNotEmpty()) {
+        "@${comentarioApi.user[0].nickname}"
+    } else {
+        "@user${comentarioApi.idUser}"
+    }
+    
+    Log.d("MapComment", "Comentário ID: ${comentarioApi.id}, UserID da API: ${comentarioApi.idUser}, UserName da API: $userName")
+    
     return Comment(
         id = comentarioApi.id,
-        userName = "@user${comentarioApi.idUser}", // Nome baseado no ID do usuário
+        userName = userName,
         userProfileImage = R.drawable.profile_placeholder,
         text = comentarioApi.conteudo,
         initialLikes = 0, // A API não retorna likes dos comentários
@@ -137,6 +149,7 @@ fun HomeScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
     
     val isDarkTheme = isSystemInDarkTheme()
     val logoRes = if (isDarkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
@@ -338,15 +351,8 @@ fun HomeScreen(navController: NavController) {
                 CommentsSheetContent(
                     post = selectedPostForComments!!,
                     onAddComment = { newCommentText ->
-                        val newComment = Comment(
-                            id = (0..10000).random(),
-                            userName = "@UsuarioLogado",
-                            userProfileImage = R.drawable.profile_placeholder,
-                            text = newCommentText,
-                            initialLikes = 0,
-                            isInitiallyLiked = false
-                        )
-                        selectedPostForComments?.comments?.add(newComment)
+                        // Este callback não é mais necessário pois o CommentsSheetContent
+                        // já adiciona o comentário diretamente na lista
                     }
                 )
             }
@@ -444,6 +450,7 @@ fun CommentsSheetContent(
     var isLoadingComments by remember { mutableStateOf(true) }
     var isSendingComment by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
     
     // Carregar comentários da API
     LaunchedEffect(post.id) {
@@ -456,7 +463,7 @@ fun CommentsSheetContent(
                     val comentarioResponse = response.body()!!
                     if (comentarioResponse.status) {
                         val commentsFromApi = comentarioResponse.comentarios.map { 
-                            mapComentarioApiToComment(it) 
+                            mapComentarioApiToComment(it, context) 
                         }
                         post.comments.clear()
                         post.comments.addAll(commentsFromApi)
@@ -515,22 +522,28 @@ fun CommentsSheetContent(
                             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                             val currentDate = dateFormat.format(Date())
                             
+                            // Pegar dados do usuário logado usando a classe utilitária
+                            val userId = UserPreferences.getUserId(context)
+                            val userNickname = UserPreferences.getUserNickname(context)
+                            
+                            Log.d("CommentsSheet", "Dados do usuário - ID: $userId, Nickname: $userNickname")
+                            
                             val novoComentario = ComentarioRequest(
                                 conteudo = newCommentText,
                                 dataComentario = currentDate,
                                 idPublicacao = post.id,
-                                idUser = 1 // TODO: Pegar ID do usuário logado
+                                idUser = userId
                             )
-                            
                             Log.d("CommentsSheet", "Enviando comentário: $novoComentario")
                             val response = comentarioService.criarComentario(novoComentario)
                             Log.d("CommentsSheet", "Resposta: código=${response.code()}, sucesso=${response.isSuccessful}")
                             
                             if (response.isSuccessful) {
+                                
                                 // Adicionar comentário localmente
                                 val newComment = Comment(
                                     id = (0..10000).random(),
-                                    userName = "@user1", // TODO: Pegar nome do usuário logado
+                                    userName = "@$userNickname",
                                     userProfileImage = R.drawable.profile_placeholder,
                                     text = newCommentText,
                                     initialLikes = 0,
@@ -540,7 +553,6 @@ fun CommentsSheetContent(
                                 newCommentText = ""
                                 onAddComment(newComment.text)
                             } else {
-                                Log.e("CommentsSheet", "Erro ao enviar comentário: ${response.code()}")
                             }
                         } catch (e: Exception) {
                             Log.e("CommentsSheet", "Erro ao enviar comentário", e)
