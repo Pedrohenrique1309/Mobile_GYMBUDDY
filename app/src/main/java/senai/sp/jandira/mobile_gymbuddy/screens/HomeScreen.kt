@@ -183,7 +183,7 @@ fun HomeScreen(navController: NavController) {
                     Image(
                         painter = painterResource(id = logoRes),
                         contentDescription = "Logo Gym Buddy",
-                        modifier = Modifier.height(55.dp)
+                        modifier = Modifier.height(75.dp)
                     )
                 },
                 actions = {
