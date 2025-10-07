@@ -378,8 +378,8 @@ fun PostItem(
             contentDescription = "Imagem da publicação",
             modifier = Modifier.fillMaxWidth().aspectRatio(1f),
             contentScale = ContentScale.Crop,
-            placeholder = painterResource(id = R.drawable.profile_placeholder),
-            error = painterResource(id = R.drawable.profile_placeholder),
+            placeholder = painterResource(id = R.drawable.img),
+            error = painterResource(id = R.drawable.img),
             onSuccess = { 
                 Log.d("PostImage", "✅ Imagem da publicação carregada: ${post.postImageUrl}")
             },
