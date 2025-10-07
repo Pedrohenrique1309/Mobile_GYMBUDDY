@@ -69,39 +69,7 @@ data class Post(
 )
 
 // =================================================================================
-// 2. DADOS PROVISÓRIOS
-// =================================================================================
-val mockApiData = listOf(
-    Post(
-        id = 1, userName = "@TreinadorJonas", userProfileImage = R.drawable.profile_placeholder,
-        postImageUrl = "https://via.placeholder.com/400x400/FF6B6B/FFFFFF?text=Treino+1",
-        gymName = "Academia BlaBlaBla", caption = "O de hoje tá feito, um passo de cada vez! 🙏",
-        initialLikes = 132, isInitiallyLiked = true,
-        comments = mutableListOf(
-            Comment(1, "@MailtonJose", "https://via.placeholder.com/150", "É isso aí, mestre!", 15, true),
-            Comment(2, "@AnaFitness", null, "Boraaa! 💪", 2, false)
-        )
-    ),
-    Post(
-        id = 2, userName = "@MailtonJose", userProfileImage = R.drawable.profile_placeholder,
-        postImageUrl = "https://via.placeholder.com/400x400/4ECDC4/FFFFFF?text=Treino+2",
-        gymName = "Academia Body Space", caption = "Projeto verão continua firme! #foco",
-        initialLikes = 254, isInitiallyLiked = false,
-        comments = mutableListOf(
-            Comment(3, "@TreinadorJonas", null, "Continue focado!", 8, false)
-        )
-    ),
-    Post(
-        id = 3, userName = "@AnaFitness", userProfileImage = R.drawable.profile_placeholder,
-        postImageUrl = "https://via.placeholder.com/400x400/45B7D1/FFFFFF?text=Treino+3",
-        gymName = "Gym Power", caption = "Novo recorde pessoal no agachamento! 💪",
-        initialLikes = 589, isInitiallyLiked = false,
-        comments = mutableListOf()
-    )
-)
-
-// =================================================================================
-// 3. FUNÇÕES DE MAPEAMENTO DA API PARA UI
+// 2. FUNÇÕES DE MAPEAMENTO DA API PARA UI
 // =================================================================================
 fun mapPublicacaoToPost(publicacao: Publicacao): Post {
     // Pega o nickname do primeiro usuário do array, ou usa um fallback
@@ -201,9 +169,6 @@ fun HomeScreen(navController: NavController) {
             } catch (e: Exception) {
                 errorMessage = "Erro de conexão: ${e.message}"
                 Log.e("HomeScreen", "Erro de conexão", e)
-                // Fallback para dados mockados em caso de erro
-                posts.clear()
-                posts.addAll(mockApiData)
             } finally {
                 isLoading = false
             }
