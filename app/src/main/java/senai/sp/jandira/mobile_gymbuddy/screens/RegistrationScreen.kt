@@ -68,9 +68,17 @@ fun RegistrationScreen(
     val errorEmailsNotMatching = stringResource(id = R.string.error_emails_not_matching)
     val errorPasswordsNotMatching = stringResource(id = R.string.error_passwords_not_matching)
     val errorPasswordRequirements = stringResource(id = R.string.error_password_requirements)
+    val errorInvalidEmailDomain = "Email incorreto! Tente novamente."
 
     // Regex da senha CORRIGIDO para ser mais robusto
     val passwordRegex = "^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%^&*()_+\\-/]).{8,}".toRegex()
+    
+    // Função para validar domínio do email
+    fun isValidEmailDomain(email: String): Boolean {
+        val validDomains = listOf("@gmail.com", "@email.com", "@hotmail.com")
+        return validDomains.any { domain -> email.lowercase().endsWith(domain) }
+    }
+    
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(key1 = errorMessage) {
@@ -111,7 +119,12 @@ fun RegistrationScreen(
 
         OutlinedTextField(
             value = fullName,
-            onValueChange = { fullName = it },
+            onValueChange = { newValue ->
+                // Permitir apenas letras e espaços
+                if (newValue.all { it.isLetter() || it.isWhitespace() }) {
+                    fullName = newValue
+                }
+            },
             label = { Text("Insira seu nome completo") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -125,7 +138,12 @@ fun RegistrationScreen(
 
         OutlinedTextField(
             value = nickname,
-            onValueChange = { nickname = it },
+            onValueChange = { newValue ->
+                // Não permitir espaços
+                if (!newValue.contains(" ")) {
+                    nickname = newValue
+                }
+            },
             label = { Text("Crie um nome de usuário") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -249,6 +267,10 @@ fun RegistrationScreen(
                 if (fullName.isBlank() || nickname.isBlank() || email.isBlank() || confirmEmail.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
                     errorMessage = errorEmptyFields
                     Log.d("REGISTER_CLICK", "Falha na validação: Campos vazios.")
+
+                } else if (!isValidEmailDomain(email)) {
+                    errorMessage = errorInvalidEmailDomain
+                    Log.d("REGISTER_CLICK", "Falha na validação: Domínio de email inválido.")
 
                 } else if (email != confirmEmail) {
                     errorMessage = errorEmailsNotMatching
