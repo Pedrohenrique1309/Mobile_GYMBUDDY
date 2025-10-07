@@ -452,28 +452,39 @@ fun CommentsSheetContent(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     
-    // Carregar comentários da API
+    // Estado local para os comentários que o Compose pode observar
+    val comments = remember { mutableStateListOf<Comment>() }
+    
+    // Carregar comentários da API apenas uma vez
     LaunchedEffect(post.id) {
-        coroutineScope.launch {
-            try {
-                val comentarioService = RetrofitFactory.getComentarioService()
-                val response = comentarioService.getComentarios(post.id)
-                
-                if (response.isSuccessful && response.body() != null) {
-                    val comentarioResponse = response.body()!!
-                    if (comentarioResponse.status) {
-                        val commentsFromApi = comentarioResponse.comentarios.map { 
-                            mapComentarioApiToComment(it, context) 
+        if (comments.isEmpty()) { // Só carrega se a lista local estiver vazia
+            coroutineScope.launch {
+                try {
+                    val comentarioService = RetrofitFactory.getComentarioService()
+                    val response = comentarioService.getComentarios(post.id)
+                    
+                    if (response.isSuccessful && response.body() != null) {
+                        val comentarioResponse = response.body()!!
+                        if (comentarioResponse.status) {
+                            val commentsFromApi = comentarioResponse.comentarios.map { 
+                                mapComentarioApiToComment(it, context) 
+                            }
+                            comments.clear()
+                            comments.addAll(commentsFromApi)
+                            // Também atualizar a lista do post para manter sincronizado
+                            post.comments.clear()
+                            post.comments.addAll(commentsFromApi)
+                            Log.d("CommentsSheet", "Carregados ${commentsFromApi.size} comentários da API")
                         }
-                        post.comments.clear()
-                        post.comments.addAll(commentsFromApi)
                     }
+                } catch (e: Exception) {
+                    Log.e("CommentsSheet", "Erro ao carregar comentários", e)
+                } finally {
+                    isLoadingComments = false
                 }
-            } catch (e: Exception) {
-                Log.e("CommentsSheet", "Erro ao carregar comentários", e)
-            } finally {
-                isLoadingComments = false
             }
+        } else {
+            isLoadingComments = false // Se já tem comentários, não precisa carregar
         }
     }
 
@@ -492,7 +503,7 @@ fun CommentsSheetContent(
                 )
             } else {
                 LazyColumn {
-                    items(post.comments) { comment ->
+                    items(comments) { comment ->
                         CommentItem(comment = comment)
                         Spacer(modifier = Modifier.height(12.dp))
                     }
@@ -539,8 +550,7 @@ fun CommentsSheetContent(
                             Log.d("CommentsSheet", "Resposta: código=${response.code()}, sucesso=${response.isSuccessful}")
                             
                             if (response.isSuccessful) {
-                                
-                                // Adicionar comentário localmente
+                                // Adicionar comentário imediatamente à lista local observável
                                 val newComment = Comment(
                                     id = (0..10000).random(),
                                     userName = "@$userNickname",
@@ -549,8 +559,14 @@ fun CommentsSheetContent(
                                     initialLikes = 0,
                                     isInitiallyLiked = false
                                 )
-                                post.comments.add(newComment)
+                                
+                                // Adicionar no início da lista local (observável pelo Compose)
+                                comments.add(0, newComment)
+                                // Também adicionar na lista do post para manter sincronizado
+                                post.comments.add(0, newComment)
                                 newCommentText = ""
+                                
+                                Log.d("CommentsSheet", "Comentário adicionado localmente: ${newComment.userName} - ${newComment.text}")
                                 onAddComment(newComment.text)
                             } else {
                             }
