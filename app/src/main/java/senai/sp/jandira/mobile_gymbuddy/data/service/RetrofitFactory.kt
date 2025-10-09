@@ -11,7 +11,7 @@ import com.google.gson.GsonBuilder
 
 object RetrofitFactory {
 
-    // MODIFICADO AQUI: URL para acesso do emulador ao localhost do computador
+    // URL para localhost - Se não funcionar, troque por seu IP local (ex: http://192.168.1.100:8080/)
     private const val BASE_URL = "http://10.0.2.2:8080/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -42,5 +42,19 @@ object RetrofitFactory {
 
     fun getComentarioService(): ComentarioService {
         return retrofit.create(ComentarioService::class.java)
+    }
+
+    // ========== NOVOS SERVIÇOS OTIMIZADOS ==========
+
+    fun getFeedService(): FeedService {
+        return retrofit.create(FeedService::class.java)
+    }
+
+    fun getCurtidaService(): CurtidaService {
+        return retrofit.create(CurtidaService::class.java)
+    }
+
+    fun getNotificacaoService(): NotificacaoService {
+        return retrofit.create(NotificacaoService::class.java)
     }
 }
