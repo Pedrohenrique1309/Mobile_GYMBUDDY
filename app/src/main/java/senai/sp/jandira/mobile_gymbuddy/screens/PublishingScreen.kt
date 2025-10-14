@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import android.content.Context
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,6 +44,7 @@ import senai.sp.jandira.mobile_gymbuddy.data.model.PublicacaoRequest
 import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 import senai.sp.jandira.mobile_gymbuddy.utils.AzureBlobUploader
+import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -64,8 +66,9 @@ fun PublishingScreen(navController: NavController) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     
-    // TODO: Pegar o ID do usuário logado do sistema de preferências/sessão
-    val currentUserId = 1 // Temporário - substituir pela lógica real de usuário logado
+    // Pegar o ID do usuário logado usando UserPreferences
+    val currentUserId = UserPreferences.getUserId(context)
+    android.util.Log.d("PublishingScreen", "ID do usuário logado: $currentUserId")
 
     // Criar arquivo temporário para a foto
     val createImageFile = {
