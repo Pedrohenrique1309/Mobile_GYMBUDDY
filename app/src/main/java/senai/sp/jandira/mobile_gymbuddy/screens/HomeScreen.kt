@@ -35,6 +35,7 @@ import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.data.model.Publicacao
 import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioApi
 import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioRequest
+import senai.sp.jandira.mobile_gymbuddy.data.model.CurtidaRequest
 import kotlinx.coroutines.launch
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
@@ -63,16 +64,20 @@ data class Post(
     val postImageUrl: String?, // URL da imagem da publicação
     val gymName: String,
     val caption: String,
-    val initialLikes: Int,
-    val isInitiallyLiked: Boolean,
+    var currentLikes: Int, // Mutável para atualizações locais
+    var isCurrentlyLiked: Boolean, // Mutável para atualizações locais
     val commentsCount: Int, // Contagem de comentários do banco via trigger
     val comments: MutableList<Comment>
-)
+) {
+    // Propriedades de compatibilidade
+    val initialLikes: Int get() = currentLikes
+    val isInitiallyLiked: Boolean get() = isCurrentlyLiked
+}
 
 // =================================================================================
 // 2. FUNÇÕES DE MAPEAMENTO DA API PARA UI
 // =================================================================================
-fun mapPublicacaoToPost(publicacao: Publicacao, actualCommentsCount: Int = 0): Post {
+fun mapPublicacaoToPost(publicacao: Publicacao, actualCommentsCount: Int = 0, isLikedByUser: Boolean = false): Post {
     // Pega o nickname do primeiro usuário do array, ou usa um fallback
     val userName = if (publicacao.user.isNotEmpty()) {
         "@${publicacao.user[0].nickname}"
@@ -89,8 +94,8 @@ fun mapPublicacaoToPost(publicacao: Publicacao, actualCommentsCount: Int = 0): P
         postImageUrl = publicacao.imagem, // Mapear a URL da imagem da publicação
         gymName = publicacao.localizacao,
         caption = publicacao.descricao,
-        initialLikes = publicacao.curtidasCount,
-        isInitiallyLiked = false,
+        currentLikes = publicacao.curtidasCount,
+        isCurrentlyLiked = isLikedByUser,
         commentsCount = actualCommentsCount, // Usar contagem real dos comentários
         comments = mutableListOf()
     )
@@ -170,7 +175,7 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             try {
-                // Buscar publicações primeiro
+                // Buscar publicações e comentários (curtidas serão carregadas individualmente)
                 val publicacaoService = RetrofitFactory.getPublicacaoService()
                 val comentarioService = RetrofitFactory.getComentarioService()
                 
@@ -179,6 +184,10 @@ fun HomeScreen(
                 if (publicacoesResponse.isSuccessful && publicacoesResponse.body() != null) {
                     val apiResponse = publicacoesResponse.body()!!
                     if (apiResponse.status) {
+                        // Simplificar: iniciar todos os posts como não curtidos
+                        // O usuário pode curtir durante a sessão e o estado persiste localmente
+                        android.util.Log.d("HomeScreen", "Carregando posts sem estado de curtidas inicial")
+                        
                         // Contar comentários por publicação individualmente
                         val commentsCountMap = mutableMapOf<Int, Int>()
                         
@@ -205,7 +214,11 @@ fun HomeScreen(
                         android.util.Log.d("HomeScreen", "Mapa final de contagem: $commentsCountMap")
                         
                         val mappedPosts = apiResponse.publicacoes.map { publicacao ->
-                            mapPublicacaoToPost(publicacao, commentsCountMap.getOrDefault(publicacao.id, 0))
+                            mapPublicacaoToPost(
+                                publicacao = publicacao,
+                                actualCommentsCount = commentsCountMap.getOrDefault(publicacao.id, 0),
+                                isLikedByUser = false // Inicialmente não curtido, usuário curte durante sessão
+                            )
                         }
                         posts.clear()
                         posts.addAll(mappedPosts)
@@ -475,12 +488,22 @@ fun PostItem(
     post: Post,
     onCommentClick: () -> Unit
 ) {
-    var isLiked by remember { mutableStateOf(post.isInitiallyLiked) }
-    var likesCount by remember { mutableStateOf(post.initialLikes) }
+    // Usar os estados mutáveis do próprio objeto Post
+    var isLiked by remember(post.id) { mutableStateOf(post.isCurrentlyLiked) }
+    var likesCount by remember(post.id) { mutableStateOf(post.currentLikes) }
+    
+    // Sincronizar com o objeto Post quando ele mudar
+    LaunchedEffect(post.isCurrentlyLiked, post.currentLikes) {
+        isLiked = post.isCurrentlyLiked
+        likesCount = post.currentLikes
+    }
     // Usar estado derivado que sempre reflete o tamanho atual da lista
     val commentsCount by remember { 
         derivedStateOf { maxOf(post.commentsCount, post.comments.size) }
     }
+    
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(
@@ -527,8 +550,45 @@ fun PostItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable {
-                    isLiked = !isLiked
-                    if (isLiked) likesCount++ else likesCount--
+                    coroutineScope.launch {
+                        try {
+                            val curtidaService = RetrofitFactory.getCurtidaService()
+                            val userId = UserPreferences.getUserId(context)
+                            
+                            // Toggle curtida (API decide se adiciona ou remove)
+                            val curtidaRequest = CurtidaRequest(
+                                idUser = userId,
+                                idPublicacao = post.id
+                            )
+                            
+                            android.util.Log.d("PostItem", "Toggle curtida: $curtidaRequest")
+                            val response = curtidaService.toggleCurtida(curtidaRequest)
+                            
+                            if (response.isSuccessful) {
+                                android.util.Log.d("PostItem", "Curtida processada com sucesso")
+                            } else {
+                                android.util.Log.e("PostItem", "Erro ao processar curtida: ${response.code()}")
+                                return@launch
+                            }
+                            
+                            // Atualizar UI localmente e o objeto Post
+                            isLiked = !isLiked
+                            if (isLiked) {
+                                likesCount++
+                                post.currentLikes++
+                                post.isCurrentlyLiked = true
+                            } else {
+                                likesCount--
+                                post.currentLikes--
+                                post.isCurrentlyLiked = false
+                            }
+                            
+                            android.util.Log.d("PostItem", "Post ${post.id} - isLiked: $isLiked, likes: $likesCount")
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("PostItem", "Erro ao processar curtida", e)
+                        }
+                    }
                 }
             ) {
                 Icon(

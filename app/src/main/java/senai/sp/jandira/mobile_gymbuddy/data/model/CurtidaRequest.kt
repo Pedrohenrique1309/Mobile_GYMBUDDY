@@ -4,14 +4,14 @@ import com.google.gson.annotations.SerializedName
 
 /**
  * Request para operações de curtida em publicações
- * Usado com os endpoints reais da API
+ * Formato exato esperado pela API
  */
-data class CurtidaPublicacaoRequest(
-    @SerializedName("id_publicacao")
-    val idPublicacao: Int,
-    
+data class CurtidaRequest(
     @SerializedName("id_user")
-    val idUser: Int
+    val idUser: Int,
+    
+    @SerializedName("id_publicacao")
+    val idPublicacao: Int
 )
 
 /**
