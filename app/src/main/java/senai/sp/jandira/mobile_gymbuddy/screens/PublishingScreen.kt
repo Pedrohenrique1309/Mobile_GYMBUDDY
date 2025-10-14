@@ -29,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import android.content.Context
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -130,14 +131,14 @@ fun PublishingScreen(navController: NavController) {
             ) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Voltar",
+                    contentDescription = stringResource(R.string.back_button),
                     tint = if (darkTheme) Color.White else Color.Black,
                     modifier = Modifier.size(28.dp)
                 )
             }
 
             Text(
-                text = "NOVA PUBLICAÇÃO",
+                text = stringResource(R.string.new_post_title),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (darkTheme) Color.White else Color.Black
@@ -145,7 +146,7 @@ fun PublishingScreen(navController: NavController) {
 
             Image(
                 painter = painterResource(id = logoRes),
-                contentDescription = "Logo",
+                contentDescription = stringResource(R.string.logo_gym_buddy),
                 modifier = Modifier.height(60.dp)
             )
         }
@@ -188,7 +189,7 @@ fun PublishingScreen(navController: NavController) {
 
         // Label Descrição
         Text(
-            text = "Descrição:",
+            text = stringResource(R.string.description_label),
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             color = Color.Red,
@@ -207,7 +208,7 @@ fun PublishingScreen(navController: NavController) {
             },
             placeholder = {
                 Text(
-                    text = "Crie uma descrição para sua publicação...",
+                    text = stringResource(R.string.description_placeholder),
                     color = Color.Gray
                 )
             },
@@ -225,7 +226,7 @@ fun PublishingScreen(navController: NavController) {
 
         // Contador de caracteres
         Text(
-            text = "${description.length}/800",
+            text = stringResource(R.string.character_count, description.length, 800),
             fontSize = 12.sp,
             color = Color.Gray,
             textAlign = TextAlign.End,
@@ -238,7 +239,7 @@ fun PublishingScreen(navController: NavController) {
 
         // Label Localização
         Text(
-            text = "Localização (opcional):",
+            text = stringResource(R.string.location_label),
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             color = if (darkTheme) Color.White else Color.Black,
@@ -257,7 +258,7 @@ fun PublishingScreen(navController: NavController) {
             },
             placeholder = {
                 Text(
-                    text = "Digite a localização...",
+                    text = stringResource(R.string.location_placeholder),
                     color = Color.Gray
                 )
             },
@@ -284,7 +285,7 @@ fun PublishingScreen(navController: NavController) {
 
         // Contador de caracteres para localização
         Text(
-            text = "${location.length}/100",
+            text = stringResource(R.string.character_count, location.length, 100),
             fontSize = 12.sp,
             color = Color.Gray,
             textAlign = TextAlign.End,
@@ -389,14 +390,14 @@ fun PublishingScreen(navController: NavController) {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Publicando...",
+                            text = stringResource(R.string.publishing),
                             fontSize = 14.sp,
                             color = Color.White
                         )
                     }
                 } else {
                     Text(
-                        text = "Publicar",
+                        text = stringResource(R.string.publish_button),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White
@@ -514,7 +515,7 @@ fun ImagePickerBottomSheetContent(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "FOTO",
+                    text = stringResource(R.string.photo_option),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (darkTheme) Color.White else Color.Black
@@ -544,7 +545,7 @@ fun ImagePickerBottomSheetContent(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "VÍDEO",
+                    text = stringResource(R.string.video_option),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (darkTheme) Color.White else Color.Black
@@ -574,7 +575,7 @@ fun ImagePickerBottomSheetContent(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "GALERIA",
+                    text = stringResource(R.string.gallery_option),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (darkTheme) Color.White else Color.Black

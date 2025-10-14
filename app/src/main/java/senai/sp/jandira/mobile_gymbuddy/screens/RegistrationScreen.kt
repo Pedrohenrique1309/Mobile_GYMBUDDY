@@ -74,7 +74,7 @@ fun RegistrationScreen(
     val errorEmailsNotMatching = stringResource(id = R.string.error_emails_not_matching)
     val errorPasswordsNotMatching = stringResource(id = R.string.error_passwords_not_matching)
     val errorPasswordRequirements = stringResource(id = R.string.error_password_requirements)
-    val errorInvalidEmailDomain = "Email incorreto! Tente novamente."
+    val errorInvalidEmailDomain = stringResource(id = R.string.error_invalid_email_domain)
 
     // Regex da senha CORRIGIDO para ser mais robusto
     val passwordRegex = "^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%^&*()_+\\-/]).{8,}".toRegex()

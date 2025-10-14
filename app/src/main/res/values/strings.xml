@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Mobile-GYMBUDDY</string>
+    
+    <!-- Login Screen -->
     <string name="login_title">Fazer Login</string>
     <string name="email_or_user">E-mail ou usuário</string>
     <string name="password">Senha</string>
@@ -8,6 +10,8 @@
     <string name="no_account">Não possui uma conta?</string>
     <string name="create_account">Criar conta</string>
     <string name="logo_description">Logo</string>
+    
+    <!-- Registration Screen -->
     <string name="register_title">Cadastrar-se</string>
     <string name="create_username">Crie um nome de usuário</string>
     <string name="insert_email">Insira seu e-mail</string>
@@ -17,16 +21,23 @@
     <string name="register_button">Cadastrar</string>
     <string name="have_account">Já possui uma conta?</string>
     <string name="login_here">Fazer Login</string>
+    
+    <!-- Password Recovery -->
     <string name="recovery_title">RECUPERAÇÃO DE SENHA</string>
     <string name="recovery_subtitle">Enviaremos um código de verificação para seu email</string>
     <string name="email_label">Digite seu email</string>
     <string name="recovery_button">Receber código</string>
     <string name="back_to_login">Voltar para login</string>
+    
+    <!-- Error Messages -->
     <string name="error_empty_fields">Por favor, preencha todos os campos.</string>
     <string name="error_emails_not_matching">E-mails não coincidem.</string>
     <string name="error_passwords_not_matching">Senhas não coincidem.</string>
     <string name="error_password_requirements">Senha deve ter 8 caracteres, um maiúsculo, um número e um caractere especial.</string>
     <string name="error_invalid_credentials">E-mail ou senha inválidos.</string>
+    <string name="error_invalid_email_domain">Domínio de e-mail não permitido.</string>
+    
+    <!-- IMC Screen -->
     <string name="imc_title">CÁLCULO IMC</string>
     <string name="your_weight">Seu peso</string>
     <string name="kg_unit">kg</string>
@@ -42,4 +53,45 @@
     <string name="imc_obesity_2">Obesidade Grau II (Severa)</string>
     <string name="imc_obesity_3">Obesidade Grau III (Mórbida)</string>
     <string name="imc_message">Seu IMC é %1$.1f</string>
+    
+    <!-- Publishing Screen -->
+    <string name="new_post_title">NOVA PUBLICAÇÃO</string>
+    <string name="description_label">Descrição:</string>
+    <string name="description_placeholder">Crie uma descrição para sua publicação...</string>
+    <string name="character_count">%1$d/%2$d</string>
+    <string name="location_label">Localização (opcional):</string>
+    <string name="location_placeholder">Digite a localização...</string>
+    <string name="publishing">Publicando...</string>
+    <string name="publish_button">Publicar</string>
+    <string name="photo_option">FOTO</string>
+    <string name="video_option">VÍDEO</string>
+    <string name="gallery_option">GALERIA</string>
+    
+    <!-- Home Screen -->
+    <string name="post_success_message">Post publicado com sucesso!</string>
+    <string name="likes_count">%1$d curtidas</string>
+    <string name="notifications_description">Notificações</string>
+    <string name="try_again">Tentar Novamente</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_workouts">Treinos</string>
+    <string name="nav_achievements">Conquistas</string>
+    <string name="nav_profile">Perfil</string>
+    
+    <!-- Content Descriptions -->
+    <string name="logo_gym_buddy">Logo Gym Buddy</string>
+    <string name="back_button">Voltar</string>
+    <string name="success_icon">Sucesso</string>
+    <string name="camera_icon">Câmera</string>
+    <string name="video_icon">Vídeo</string>
+    <string name="gallery_icon">Galeria</string>
+    <string name="like_button">Curtir</string>
+    <string name="comment_button">Comentar</string>
+    <string name="share_button">Compartilhar</string>
+    
+    <!-- General -->
+    <string name="loading">Carregando...</string>
+    <string name="error_network">Erro de conexão. Tente novamente.</string>
+    <string name="error_generic">Ocorreu um erro. Tente novamente.</string>
 </resources>

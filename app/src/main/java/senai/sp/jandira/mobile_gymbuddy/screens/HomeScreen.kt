@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -153,7 +154,12 @@ fun HomeScreen(
     val isDarkTheme = isSystemInDarkTheme()
     val logoRes = if (isDarkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
     var selectedItem by remember { mutableStateOf<Int>(0) }
-    val items = listOf("Home", "Treinos", "Conquistas", "Perfil")
+    val items = listOf(
+        stringResource(R.string.nav_home),
+        stringResource(R.string.nav_workouts),
+        stringResource(R.string.nav_achievements),
+        stringResource(R.string.nav_profile)
+    )
     val sheetState = rememberModalBottomSheetState()
     var selectedPostForComments by remember { mutableStateOf<Post?>(null) }
 
@@ -194,13 +200,13 @@ fun HomeScreen(
                 title = {
                     Image(
                         painter = painterResource(id = logoRes),
-                        contentDescription = "Logo Gym Buddy",
+                        contentDescription = stringResource(R.string.logo_gym_buddy),
                         modifier = Modifier.height(75.dp)
                     )
                 },
                 actions = {
                     IconButton(onClick = { /* Ação de notificação */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                        Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.notifications_description))
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -334,7 +340,7 @@ fun HomeScreen(
                                 }
                             }
                         ) {
-                            Text("Tentar Novamente")
+                            Text(stringResource(R.string.try_again))
                         }
                     }
                 }
@@ -363,12 +369,12 @@ fun HomeScreen(
                                     ) {
                                         Icon(
                                             Icons.Default.CheckCircle,
-                                            contentDescription = "Sucesso",
+                                            contentDescription = stringResource(R.string.success_icon),
                                             tint = Color.White,
                                             modifier = Modifier.size(24.dp)
                                         )
                                         Text(
-                                            text = "Post publicado com sucesso! 🎉",
+                                            text = stringResource(R.string.post_success_message),
                                             color = Color.White,
                                             fontWeight = FontWeight.Medium,
                                             fontSize = 16.sp
@@ -481,7 +487,7 @@ fun PostItem(
         }
 
         Text(
-            text = "$likesCount curtidas",
+            text = stringResource(R.string.likes_count, likesCount),
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
             modifier = Modifier.padding(horizontal = 12.dp)
