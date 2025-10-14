@@ -1,19 +1,28 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,10 +45,34 @@ fun ImcScreen(navController: NavController) {
     // Estados para os campos de texto
     var peso by remember { mutableStateOf("") }
     var altura by remember { mutableStateOf("") }
+    
+    // Estados para o resultado do IMC
+    var imcCalculado by remember { mutableStateOf<Double?>(null) }
+    var showResult by remember { mutableStateOf(false) }
+    var timeLeft by remember { mutableStateOf(8) }
+    var progress by remember { mutableStateOf(0f) }
 
     // Estados para o Scaffold e Coroutine
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    
+    // Função para obter a categoria do IMC
+    fun getImcCategory(imc: Double): Pair<String, Color> {
+        return when {
+            imc < 18.5 -> "Abaixo do peso" to Color(0xFF4CAF50)
+            imc < 25.0 -> "Peso normal" to Color(0xFF2196F3)
+            imc < 30.0 -> "Sobrepeso" to Color(0xFFFF9800)
+            imc < 35.0 -> "Obesidade Grau I" to Color(0xFFFF5722)
+            else -> "Obesidade Grau II+" to Color(0xFFF44336)
+        }
+    }
+    
+    // Animação do progresso
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 1000),
+        label = "progress"
+    )
 
     // Scaffold é necessário para exibir o Snackbar
     Scaffold(
@@ -128,20 +161,19 @@ fun ImcScreen(navController: NavController) {
                         // Inicia uma coroutine para tarefas assíncronas
                         scope.launch {
                             val imc = pesoDouble / (alturaDouble * alturaDouble)
+                            imcCalculado = imc
+                            showResult = true
+                            timeLeft = 8
+                            progress = 0f
 
-                            // Prepara a mensagem usando o recurso de string
-                            val mensagem = navController.context.getString(R.string.imc_message, imc)
+                            // Timer com barra de progresso
+                            repeat(8) { second ->
+                                delay(1000)
+                                timeLeft = 8 - (second + 1)
+                                progress = (second + 1) / 8f
+                            }
 
-                            // 1. Mostra a mensagem do IMC no Snackbar
-                            snackbarHostState.showSnackbar(
-                                message = mensagem,
-                                duration = SnackbarDuration.Long
-                            )
-
-                            // 2. Espera 5 segundos
-                            delay(5000)
-
-                            // 3. Navega para a tela Home
+                            // Navega para a tela Home
                             navController.navigate("home")
                         }
                     } else {
@@ -154,12 +186,172 @@ fun ImcScreen(navController: NavController) {
                         }
                     }
                 },
+                enabled = !showResult,
                 modifier = Modifier
                     .width(200.dp)
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = secondaryLight)
             ) {
                 Text(text = stringResource(id = R.string.calculate))
+            }
+            
+            // Resultado visual do IMC
+            if (showResult && imcCalculado != null) {
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                ImcResultCard(
+                    imc = imcCalculado!!,
+                    timeLeft = timeLeft,
+                    progress = animatedProgress,
+                    isDarkTheme = isDarkTheme,
+                    getImcCategory = ::getImcCategory
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ImcResultCard(
+    imc: Double,
+    timeLeft: Int,
+    progress: Float,
+    isDarkTheme: Boolean,
+    getImcCategory: (Double) -> Pair<String, Color>
+) {
+    val (categoria, corCategoria) = getImcCategory(imc)
+    
+    // Cores de sucesso (verde)
+    val successColor = Color(0xFF4CAF50)
+    val successLightColor = Color(0xFF81C784)
+    
+    // Animação da cor da categoria
+    val animatedColor by animateColorAsState(
+        targetValue = corCategoria,
+        animationSpec = tween(durationMillis = 500),
+        label = "categoryColor"
+    )
+    
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .wrapContentHeight(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Ícone de sucesso
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(
+                            color = successColor.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(30.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "✓",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = successColor
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Mensagem de sucesso compacta
+                Text(
+                    text = "IMC Calculado com Sucesso!",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = successColor,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Valor do IMC - mais compacto
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "IMC: ",
+                        fontSize = 18.sp,
+                        color = if (isDarkTheme) Color.White else Color.Black
+                    )
+                    Text(
+                        text = String.format("%.1f", imc),
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = animatedColor
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = animatedColor,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = categoria,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                // Mensagem menor de redirecionamento
+                Text(
+                    text = "Redirecionando...",
+                    fontSize = 13.sp,
+                    color = if (isDarkTheme) Color.Gray else Color.DarkGray,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Barra que diminui (invertida - mostra o tempo restante)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(if (isDarkTheme) Color.Gray.copy(alpha = 0.2f) else Color.LightGray.copy(alpha = 0.3f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(1f - progress) // Barra que diminui
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(
+                                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                    colors = listOf(
+                                        successColor,
+                                        successLightColor
+                                    )
+                                )
+                            )
+                    )
+                }
             }
         }
     }
@@ -170,6 +362,34 @@ fun ImcScreen(navController: NavController) {
 fun ImcScreenPreview() {
     MobileGYMBUDDYTheme {
         ImcScreen(navController = rememberNavController())
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ImcResultCardPreview() {
+    MobileGYMBUDDYTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F5))
+        ) {
+            ImcResultCard(
+                imc = 23.5,
+                timeLeft = 3,
+                progress = 0.6f,
+                isDarkTheme = false,
+                getImcCategory = { imc ->
+                    when {
+                        imc < 18.5 -> "Abaixo do peso" to Color(0xFF4CAF50)
+                        imc < 25.0 -> "Peso normal" to Color(0xFF2196F3)
+                        imc < 30.0 -> "Sobrepeso" to Color(0xFFFF9800)
+                        imc < 35.0 -> "Obesidade Grau I" to Color(0xFFFF5722)
+                        else -> "Obesidade Grau II+" to Color(0xFFF44336)
+                    }
+                }
+            )
+        }
     }
 }
 
