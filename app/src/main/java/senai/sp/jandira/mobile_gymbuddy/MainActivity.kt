@@ -17,9 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import kotlinx.coroutines.delay
 import senai.sp.jandira.mobile_gymbuddy.screens.HomeScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.ImcScreen
@@ -65,8 +67,20 @@ class MainActivity : ComponentActivity() {
                                     onLoginClick = { navController.navigate("login") }
                                 )
                             }
-                            composable("home") {
-                                HomeScreen(navController = navController)
+                            composable(
+                                route = "home?postSuccess={postSuccess}",
+                                arguments = listOf(
+                                    navArgument("postSuccess") { 
+                                        type = NavType.BoolType
+                                        defaultValue = false 
+                                    }
+                                )
+                            ) { backStackEntry ->
+                                val postSuccess = backStackEntry.arguments?.getBoolean("postSuccess") ?: false
+                                HomeScreen(
+                                    navController = navController,
+                                    postSuccess = postSuccess
+                                )
                             }
 
                             // MUDANÇA: Adicionada a nova rota para a tela de IMC

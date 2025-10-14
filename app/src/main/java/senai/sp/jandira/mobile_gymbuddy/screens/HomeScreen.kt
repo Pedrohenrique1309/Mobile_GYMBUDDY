@@ -130,13 +130,25 @@ fun mapComentarioApiToComment(comentarioApi: ComentarioApi, context: Context): C
 // =================================================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(
+    navController: NavController,
+    postSuccess: Boolean = false
+) {
 
     val posts = remember { mutableStateListOf<Post>() }
     var isLoading by remember { mutableStateOf(true) }
+    var showSuccessMessage by remember { mutableStateOf(postSuccess) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    
+    // Esconder mensagem de sucesso após 4 segundos
+    LaunchedEffect(postSuccess) {
+        if (postSuccess) {
+            kotlinx.coroutines.delay(4000)
+            showSuccessMessage = false
+        }
+    }
     
     val isDarkTheme = isSystemInDarkTheme()
     val logoRes = if (isDarkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
@@ -330,6 +342,42 @@ fun HomeScreen(navController: NavController) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize()
                     ) {
+                        // Card de sucesso no topo
+                        if (showSuccessMessage) {
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color(0xFF4CAF50) // Verde
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.CheckCircle,
+                                            contentDescription = "Sucesso",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Text(
+                                            text = "Post publicado com sucesso! 🎉",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 16.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
                         items(posts) { postData ->
                             PostItem(
                                 post = postData,

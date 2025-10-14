@@ -234,7 +234,7 @@ fun ImcScreen(navController: NavController) {
                             }
 
                             // Navega para a tela Home
-                            navController.navigate("home")
+                            navController.navigate("home?postSuccess=false")
                         }
                     } else {
                         // Lógica de erro caso os campos estejam inválidos ou vazios

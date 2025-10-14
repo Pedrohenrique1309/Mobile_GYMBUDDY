@@ -209,7 +209,7 @@ fun LoginScreen(
                                         )
                                         
                                         Log.d("LOGIN_SUCCESS", "Login bem-sucedido: ${usuario.nome}")
-                                        navController.navigate("home")
+                                        navController.navigate("home?postSuccess=false")
                                     } else {
                                         errorMessage = errorInvalidCredentials
                                     }

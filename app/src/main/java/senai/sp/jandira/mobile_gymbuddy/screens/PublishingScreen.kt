@@ -342,13 +342,14 @@ fun PublishingScreen(navController: NavController) {
                                         data = dataAtual,
                                         idUser = currentUserId
                                     )
-                                    
                                     val publicacaoService = RetrofitFactory.getPublicacaoService()
                                     val response = publicacaoService.criarPublicacao(publicacaoRequest)
                                     
                                     if (response.isSuccessful && response.body()?.statusCode == 200) {
-                                        // Sucesso - voltar para tela anterior
-                                        navController.popBackStack()
+                                        // Navega para a tela Home com indicador de sucesso
+                                        navController.navigate("home?postSuccess=true") {
+                                            popUpTo("publishing") { inclusive = true }
+                                        }
                                     } else {
                                         val errorMsg = response.body()?.message ?: "Erro desconhecido"
                                         errorMessage = "Erro ao criar publicação: $errorMsg"
