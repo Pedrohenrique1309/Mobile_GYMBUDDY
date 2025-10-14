@@ -70,6 +70,8 @@
     <!-- Home Screen -->
     <string name="post_success_message">Post publicado com sucesso!</string>
     <string name="likes_count">%1$d curtidas</string>
+    <string name="likes_count_compact">%1$d</string>
+    <string name="comments_count_compact">%1$d</string>
     <string name="notifications_description">Notificações</string>
     <string name="try_again">Tentar Novamente</string>
     
