@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -31,12 +32,17 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import senai.sp.jandira.mobile_gymbuddy.R
+import senai.sp.jandira.mobile_gymbuddy.data.repository.UserDataRepository
+import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioCompleteRequest
+import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImcScreen(navController: NavController) {
+    val context = LocalContext.current
+    val userDataRepository = UserDataRepository(context)
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -156,6 +162,9 @@ fun ImcScreen(navController: NavController) {
                 onClick = {
                     val pesoDouble = peso.toDoubleOrNull()
                     val alturaDouble = altura.toDoubleOrNull()
+                    
+                    android.util.Log.d("IMC_CONVERSAO", "Peso digitado: '$peso' -> $pesoDouble")
+                    android.util.Log.d("IMC_CONVERSAO", "Altura digitada: '$altura' -> $alturaDouble")
 
                     if (pesoDouble != null && alturaDouble != null && alturaDouble > 0) {
                         // Inicia uma coroutine para tarefas assíncronas
@@ -165,6 +174,57 @@ fun ImcScreen(navController: NavController) {
                             showResult = true
                             timeLeft = 8
                             progress = 0f
+
+                            // Recuperar dados temporários do usuário
+                            val tempUserData = userDataRepository.getTemporaryUserData()
+                            
+                            android.util.Log.d("IMC_TEMP_DATA", "Dados temporários encontrados: ${tempUserData != null}")
+                            if (tempUserData != null) {
+                                android.util.Log.d("IMC_TEMP_DATA", "Nome: ${tempUserData.nome}")
+                                android.util.Log.d("IMC_TEMP_DATA", "Email: ${tempUserData.email}")
+                            }
+                            
+                            if (tempUserData != null) {
+                                try {
+                                    // Criar usuário completo com peso e altura
+                                    val usuarioCompleto = UsuarioCompleteRequest(
+                                        nome = tempUserData.nome,
+                                        email = tempUserData.email,
+                                        senha = tempUserData.senha,
+                                        peso = pesoDouble,
+                                        altura = alturaDouble,
+                                        nickname = tempUserData.nickname,
+                                        dataNascimento = tempUserData.dataNascimento,
+                                        fotoPerfil = tempUserData.fotoPerfil
+                                    )
+                                    
+                                    // Log detalhado dos dados que serão enviados
+                                    android.util.Log.d("IMC_CADASTRO", "=== DADOS DO USUÁRIO COMPLETO ===")
+                                    android.util.Log.d("IMC_CADASTRO", "Nome: ${usuarioCompleto.nome}")
+                                    android.util.Log.d("IMC_CADASTRO", "Email: ${usuarioCompleto.email}")
+                                    android.util.Log.d("IMC_CADASTRO", "Peso: ${usuarioCompleto.peso}")
+                                    android.util.Log.d("IMC_CADASTRO", "Altura: ${usuarioCompleto.altura}")
+                                    android.util.Log.d("IMC_CADASTRO", "Nickname: ${usuarioCompleto.nickname}")
+                                    android.util.Log.d("IMC_CADASTRO", "IMC Calculado: $imc")
+                                    
+                                    // Enviar para API
+                                    android.util.Log.d("IMC_CADASTRO", "Chamando cadastrarUsuarioCompleto...")
+                                    val usuarioService = RetrofitFactory.getUsuarioService()
+                                    val response = usuarioService.cadastrarUsuarioCompleto(usuarioCompleto)
+                                    
+                                    if (response.isSuccessful && response.body()?.statusCode == 200) {
+                                        // Sucesso - limpar dados temporários
+                                        userDataRepository.clearTemporaryData()
+                                        android.util.Log.d("IMC_CADASTRO", "Usuário cadastrado com sucesso!")
+                                    } else {
+                                        android.util.Log.e("IMC_CADASTRO", "Erro ao cadastrar: ${response.body()?.message}")
+                                    }
+                                } catch (e: Exception) {
+                                    android.util.Log.e("IMC_CADASTRO", "Erro na API: ${e.message}")
+                                }
+                            } else {
+                                android.util.Log.w("IMC_CADASTRO", "Nenhum dado temporário encontrado")
+                            }
 
                             // Timer com barra de progresso
                             repeat(8) { second ->

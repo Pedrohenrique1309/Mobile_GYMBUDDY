@@ -3,6 +3,7 @@ package senai.sp.jandira.mobile_gymbuddy.data.service
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.POST
 import senai.sp.jandira.mobile_gymbuddy.data.model.PublicacaoCreateResponse
 import senai.sp.jandira.mobile_gymbuddy.data.model.PublicacaoRequest
@@ -12,6 +13,7 @@ interface PublicacaoService {
     @GET("v1/gymbuddy/publicacao")
     suspend fun getPublicacoes(): Response<PublicacaoResponse>
     
+    @Headers("Content-Type: application/json")
     @POST("v1/gymbuddy/publicacao")
     suspend fun criarPublicacao(@Body publicacao: PublicacaoRequest): Response<PublicacaoCreateResponse>
 }

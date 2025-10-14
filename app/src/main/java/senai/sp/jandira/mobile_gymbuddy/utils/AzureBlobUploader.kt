@@ -18,7 +18,7 @@ object AzureBlobUploader {
     
     private const val STORAGE_ACCOUNT = "gymbuddystorage"
     private const val CONTAINER_NAME = "fotos"
-    private const val SAS_TOKEN = "sp=cwl&st=2025-10-09T13:37:16Z&se=2025-10-09T20:30:00Z&sv=2024-11-04&sr=c&sig=fMGGqgAmqcMj%2BfF8dU7%2FRFwh6TtpqfpjB6cXX9hj6zo%3D"
+    private const val SAS_TOKEN = "sp=acw&st=2025-10-14T14:56:35Z&se=2025-10-14T23:11:35Z&sv=2024-11-04&sr=c&sig=Ns2XcPokYRGKxN3HEagkTi%2F3lUHnwAUtWF7tTwa1uRk%3D"
     
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)

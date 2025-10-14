@@ -43,7 +43,6 @@ import senai.sp.jandira.mobile_gymbuddy.data.model.PublicacaoRequest
 import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 import senai.sp.jandira.mobile_gymbuddy.utils.AzureBlobUploader
-import senai.sp.jandira.mobile_gymbuddy.utils.ImageUploadTest
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -326,9 +325,8 @@ fun PublishingScreen(navController: NavController) {
                             errorMessage = null
                             
                             try {
-                                // 1. Upload da imagem (usando teste temporariamente)
-                                val imageUrl = ImageUploadTest.uploadImageTest(context, selectedImageUri!!)
-                                // Para usar Azure real: val imageUrl = AzureBlobUploader.uploadImage(context, selectedImageUri!!)
+                                // 1. Upload da imagem para Azure Blob Storage
+                                val imageUrl = AzureBlobUploader.uploadImage(context, selectedImageUri!!)
                                 
                                 if (imageUrl != null) {
                                     // 2. Criar publicação no banco

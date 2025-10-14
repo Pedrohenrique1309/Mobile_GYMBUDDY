@@ -1,7 +1,5 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
-import senai.sp.jandira.mobile_gymbuddy.data.model.Usuario
-import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -22,9 +20,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -37,6 +38,9 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import senai.sp.jandira.mobile_gymbuddy.R
+import senai.sp.jandira.mobile_gymbuddy.data.model.Usuario
+import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
+import senai.sp.jandira.mobile_gymbuddy.data.repository.UserDataRepository
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 
@@ -47,6 +51,8 @@ fun RegistrationScreen(
     onLoginClick: () -> Unit = {},
     navController: NavHostController
 ) {
+    val context = LocalContext.current
+    val userDataRepository = UserDataRepository(context)
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -286,32 +292,20 @@ fun RegistrationScreen(
 
                 } else {
                     errorMessage = ""
-                    Log.d("REGISTER_CLICK", "Validação OK! Iniciando chamada da API...")
-                    scope.launch {
-                        try {
-                            val usuarioService = RetrofitFactory.getUsuarioService()
-                            val novoUsuario = Usuario(
-                                nome = fullName,
-                                email = email,
-                                senha = password,
-                                nickname = nickname
-                            )
-
-                            val response = usuarioService.cadastrarUsuario(novoUsuario)
-
-                            if (response.isSuccessful) {
-                                Log.d("API_SUCCESS", "Cadastro bem-sucedido (${response.code()}). Navegando para login.")
-                                navController.navigate("imc")
-                            } else {
-                                val errorBody = response.errorBody()?.string()
-                                Log.e("API_ERROR", "Erro na resposta da API: ${response.code()} - $errorBody")
-                                errorMessage = "Erro no cadastro. Verifique os dados."
-                            }
-                        } catch (e: Exception) {
-                            Log.e("API_CONNECTION", "Falha de conexão ou exceção: ${e.message}", e)
-                            errorMessage = "Não foi possível conectar. Tente novamente mais tarde."
-                        }
-                    }
+                    Log.d("REGISTER_CLICK", "Validação OK! Salvando dados temporariamente...")
+                    
+                    // Salvar dados temporariamente ao invés de enviar para API
+                    userDataRepository.saveTemporaryUserData(
+                        nome = fullName,
+                        email = email,
+                        senha = password,
+                        nickname = nickname,
+                        dataNascimento = null,
+                        fotoPerfil = null
+                    )
+                    
+                    Log.d("TEMP_DATA", "Dados salvos temporariamente. Navegando para IMC...")
+                    navController.navigate("imc")
                 }
             },
             modifier = Modifier
