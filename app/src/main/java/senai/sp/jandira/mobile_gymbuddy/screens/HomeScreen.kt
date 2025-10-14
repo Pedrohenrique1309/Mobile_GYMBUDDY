@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -480,9 +479,6 @@ fun PostItem(
                     contentDescription = "Comentar",
                     modifier = Modifier.size(28.dp)
                 )
-            }
-            IconButton(onClick = { /* Enviar */ }) {
-                Icon(Icons.Outlined.Send, contentDescription = "Enviar", modifier = Modifier.size(28.dp))
             }
         }
 

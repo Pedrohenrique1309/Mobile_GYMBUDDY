@@ -88,7 +88,6 @@
     <string name="gallery_icon">Galeria</string>
     <string name="like_button">Curtir</string>
     <string name="comment_button">Comentar</string>
-    <string name="share_button">Compartilhar</string>
     
     <!-- General -->
     <string name="loading">Carregando...</string>
