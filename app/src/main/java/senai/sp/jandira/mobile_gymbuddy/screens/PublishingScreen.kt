@@ -37,11 +37,18 @@ import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import senai.sp.jandira.mobile_gymbuddy.R
+import senai.sp.jandira.mobile_gymbuddy.data.model.PublicacaoRequest
+import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
+import senai.sp.jandira.mobile_gymbuddy.utils.AzureBlobUploader
+import senai.sp.jandira.mobile_gymbuddy.utils.ImageUploadTest
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,9 +58,15 @@ fun PublishingScreen(navController: NavController) {
     var showImagePickerSheet by remember { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var isUploading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     val darkTheme = isSystemInDarkTheme()
     val sheetState = rememberModalBottomSheetState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    
+    // TODO: Pegar o ID do usuário logado do sistema de preferências/sessão
+    val currentUserId = 1 // Temporário - substituir pela lógica real de usuário logado
 
     // Criar arquivo temporário para a foto
     val createImageFile = {
@@ -221,33 +234,85 @@ fun PublishingScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Botão de localização
-        OutlinedButton(
-            onClick = { /* TODO: Abrir seletor de localização */ },
+        // Label Localização
+        Text(
+            text = "Localização (opcional):",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (darkTheme) Color.White else Color.Black,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Campo de localização editável
+        OutlinedTextField(
+            value = location,
+            onValueChange = {
+                if (it.length <= 100) {
+                    location = it
+                }
+            },
+            placeholder = {
+                Text(
+                    text = "Digite a localização...",
+                    color = Color.Gray
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "Localização",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = surfaceColor,
-                contentColor = Color.Gray
+                .height(56.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = surfaceColor,
+                unfocusedContainerColor = surfaceColor
             ),
-            border = null,
-            shape = RoundedCornerShape(24.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.LocationOn,
-                contentDescription = "Localização",
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = if (location.isEmpty()) "Adicionar localização..." else location,
-                fontSize = 14.sp
-            )
-        }
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true
+        )
+
+        // Contador de caracteres para localização
+        Text(
+            text = "${location.length}/100",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            textAlign = TextAlign.End,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
+        )
 
         Spacer(modifier = Modifier.weight(1f))
 
+        // Mensagem de erro
+        errorMessage?.let { message ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.Red.copy(alpha = 0.1f)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = message,
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        }
+        
         // Botão Publicar
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -255,23 +320,86 @@ fun PublishingScreen(navController: NavController) {
         ) {
             Button(
                 onClick = {
-                    // TODO: Implementar lógica de publicação
-                    navController.popBackStack()
+                    if (selectedImageUri != null && description.isNotBlank()) {
+                        coroutineScope.launch {
+                            isUploading = true
+                            errorMessage = null
+                            
+                            try {
+                                // 1. Upload da imagem (usando teste temporariamente)
+                                val imageUrl = ImageUploadTest.uploadImageTest(context, selectedImageUri!!)
+                                // Para usar Azure real: val imageUrl = AzureBlobUploader.uploadImage(context, selectedImageUri!!)
+                                
+                                if (imageUrl != null) {
+                                    // 2. Criar publicação no banco
+                                    val dataAtual = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                                    
+                                    val publicacaoRequest = PublicacaoRequest(
+                                        imagem = imageUrl,
+                                        descricao = description,
+                                        localizacao = location.ifBlank { null },
+                                        data = dataAtual,
+                                        idUser = currentUserId
+                                    )
+                                    
+                                    val publicacaoService = RetrofitFactory.getPublicacaoService()
+                                    val response = publicacaoService.criarPublicacao(publicacaoRequest)
+                                    
+                                    if (response.isSuccessful && response.body()?.statusCode == 200) {
+                                        // Sucesso - voltar para tela anterior
+                                        navController.popBackStack()
+                                    } else {
+                                        val errorMsg = response.body()?.message ?: "Erro desconhecido"
+                                        errorMessage = "Erro ao criar publicação: $errorMsg"
+                                    }
+                                } else {
+                                    errorMessage = "Erro ao fazer upload da imagem"
+                                }
+                            } catch (e: Exception) {
+                                errorMessage = "Erro inesperado: ${e.message}"
+                            } finally {
+                                isUploading = false
+                            }
+                        }
+                    } else {
+                        errorMessage = "Selecione uma imagem e adicione uma descrição"
+                    }
                 },
+                enabled = !isUploading && selectedImageUri != null && description.isNotBlank(),
                 modifier = Modifier
                     .width(200.dp)
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFB71C1C)
+                    containerColor = Color(0xFFB71C1C),
+                    disabledContainerColor = Color.Gray
                 ),
                 shape = RoundedCornerShape(24.dp)
             ) {
-                Text(
-                    text = "Publicar",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White
-                )
+                if (isUploading) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Publicando...",
+                            fontSize = 14.sp,
+                            color = Color.White
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "Publicar",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
+                    )
+                }
             }
         }
 

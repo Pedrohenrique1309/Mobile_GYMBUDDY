@@ -97,7 +97,7 @@ fun RegistrationScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         val logoRes = if (isDarkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
         Image(
@@ -106,7 +106,7 @@ fun RegistrationScreen(
             modifier = Modifier.size(150.dp)
         )
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text(
             text = stringResource(id = R.string.register_title),
