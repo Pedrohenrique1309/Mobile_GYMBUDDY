@@ -37,7 +37,6 @@ import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioApi
 import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioRequest
 import kotlinx.coroutines.launch
 import android.content.Context
-import android.util.Log
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.withStyle
 import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
@@ -66,19 +65,22 @@ data class Post(
     val caption: String,
     val initialLikes: Int,
     val isInitiallyLiked: Boolean,
+    val commentsCount: Int, // Contagem de comentários do banco via trigger
     val comments: MutableList<Comment>
 )
 
 // =================================================================================
 // 2. FUNÇÕES DE MAPEAMENTO DA API PARA UI
 // =================================================================================
-fun mapPublicacaoToPost(publicacao: Publicacao): Post {
+fun mapPublicacaoToPost(publicacao: Publicacao, actualCommentsCount: Int = 0): Post {
     // Pega o nickname do primeiro usuário do array, ou usa um fallback
     val userName = if (publicacao.user.isNotEmpty()) {
         "@${publicacao.user[0].nickname}"
     } else {
         "@user${publicacao.idUser}"
     }
+    
+    android.util.Log.d("HomeScreen", "Mapeando publicação ${publicacao.id} com ${actualCommentsCount} comentários")
     
     return Post(
         id = publicacao.id,
@@ -89,6 +91,7 @@ fun mapPublicacaoToPost(publicacao: Publicacao): Post {
         caption = publicacao.descricao,
         initialLikes = publicacao.curtidasCount,
         isInitiallyLiked = false,
+        commentsCount = actualCommentsCount, // Usar contagem real dos comentários
         comments = mutableListOf()
     )
 }
@@ -107,14 +110,14 @@ fun mapComentarioApiToComment(comentarioApi: ComentarioApi, context: Context): C
         null
     }
     
-    Log.d("MapComment", "=== DEBUG COMENTÁRIO ===")
-    Log.d("MapComment", "Comentário ID: ${comentarioApi.id}")
-    Log.d("MapComment", "UserID da API: ${comentarioApi.idUser}")
-    Log.d("MapComment", "UserName da API: $userName")
-    Log.d("MapComment", "Foto URL: '$userProfileImageUrl'")
-    Log.d("MapComment", "Foto é null? ${userProfileImageUrl == null}")
-    Log.d("MapComment", "Foto é vazia? ${userProfileImageUrl?.isEmpty()}")
-    Log.d("MapComment", "========================")
+    android.util.Log.d("MapComment", "=== DEBUG COMENTÁRIO ===")
+    android.util.Log.d("MapComment", "Comentário ID: ${comentarioApi.id}")
+    android.util.Log.d("MapComment", "UserID da API: ${comentarioApi.idUser}")
+    android.util.Log.d("MapComment", "UserName da API: $userName")
+    android.util.Log.d("MapComment", "Foto URL: '$userProfileImageUrl'")
+    android.util.Log.d("MapComment", "Foto é null? ${userProfileImageUrl == null}")
+    android.util.Log.d("MapComment", "Foto é vazia? ${userProfileImageUrl?.isEmpty()}")
+    android.util.Log.d("MapComment", "========================")
     
     return Comment(
         id = comentarioApi.id,
@@ -167,26 +170,58 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             try {
-                val service = RetrofitFactory.getPublicacaoService()
-                val response = service.getPublicacoes()
+                // Buscar publicações primeiro
+                val publicacaoService = RetrofitFactory.getPublicacaoService()
+                val comentarioService = RetrofitFactory.getComentarioService()
                 
-                if (response.isSuccessful && response.body() != null) {
-                    val apiResponse = response.body()!!
+                val publicacoesResponse = publicacaoService.getPublicacoes()
+                
+                if (publicacoesResponse.isSuccessful && publicacoesResponse.body() != null) {
+                    val apiResponse = publicacoesResponse.body()!!
                     if (apiResponse.status) {
-                        val mappedPosts = apiResponse.publicacoes.map { mapPublicacaoToPost(it) }
+                        // Contar comentários por publicação individualmente
+                        val commentsCountMap = mutableMapOf<Int, Int>()
+                        
+                        // Para cada publicação, buscar seus comentários
+                        apiResponse.publicacoes.forEach { publicacao ->
+                            try {
+                                val comentariosResponse = comentarioService.getComentarios(publicacao.id)
+                                if (comentariosResponse.isSuccessful && comentariosResponse.body() != null) {
+                                    val comentariosApiResponse = comentariosResponse.body()!!
+                                    if (comentariosApiResponse.status) {
+                                        val count = comentariosApiResponse.comentarios.size
+                                        commentsCountMap[publicacao.id] = count
+                                        android.util.Log.d("HomeScreen", "Publicação ${publicacao.id} tem ${count} comentários")
+                                    }
+                                } else {
+                                    android.util.Log.w("HomeScreen", "Erro ao buscar comentários da publicação ${publicacao.id}")
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("HomeScreen", "Erro ao buscar comentários da publicação ${publicacao.id}: ${e.message}")
+                                commentsCountMap[publicacao.id] = 0
+                            }
+                        }
+                        
+                        android.util.Log.d("HomeScreen", "Mapa final de contagem: $commentsCountMap")
+                        
+                        val mappedPosts = apiResponse.publicacoes.map { publicacao ->
+                            mapPublicacaoToPost(publicacao, commentsCountMap.getOrDefault(publicacao.id, 0))
+                        }
                         posts.clear()
                         posts.addAll(mappedPosts)
                         errorMessage = null
+                        android.util.Log.d("HomeScreen", "Posts carregados: ${posts.size}")
                     } else {
                         errorMessage = "Erro ao carregar publicações"
+                        android.util.Log.e("HomeScreen", "Status falso na resposta da API")
                     }
                 } else {
-                    errorMessage = "Erro na resposta da API: ${response.code()}"
-                    Log.e("HomeScreen", "Erro na API: ${response.code()} - ${response.message()}")
+                    errorMessage = "Erro na resposta da API"
+                    android.util.Log.e("HomeScreen", "Erro na resposta: ${publicacoesResponse.code()}")
                 }
             } catch (e: Exception) {
-                errorMessage = "Erro de conexão: ${e.message}"
-                Log.e("HomeScreen", "Erro de conexão", e)
+                errorMessage = "Erro de conexão. Tente novamente."
+                android.util.Log.e("HomeScreen", "Erro de conexão", e)
             } finally {
                 isLoading = false
             }
@@ -320,20 +355,38 @@ fun HomeScreen(
                                 isLoading = true
                                 coroutineScope.launch {
                                     try {
-                                        val service = RetrofitFactory.getPublicacaoService()
-                                        val response = service.getPublicacoes()
+                                        // Buscar publicações e comentários em paralelo
+                                        val publicacaoService = RetrofitFactory.getPublicacaoService()
+                                        val comentarioService = RetrofitFactory.getComentarioService()
                                         
-                                        if (response.isSuccessful && response.body() != null) {
-                                            val apiResponse = response.body()!!
+                                        val publicacoesResponse = publicacaoService.getPublicacoes()
+                                        val comentariosResponse = comentarioService.getAllComentarios()
+                                        
+                                        if (publicacoesResponse.isSuccessful && publicacoesResponse.body() != null) {
+                                            val apiResponse = publicacoesResponse.body()!!
                                             if (apiResponse.status) {
-                                                val mappedPosts = apiResponse.publicacoes.map { mapPublicacaoToPost(it) }
+                                                // Contar comentários por publicação
+                                                val commentsCountMap = mutableMapOf<Int, Int>()
+                                                if (comentariosResponse.isSuccessful && comentariosResponse.body() != null) {
+                                                    val comentariosApiResponse = comentariosResponse.body()!!
+                                                    if (comentariosApiResponse.status) {
+                                                        comentariosApiResponse.comentarios.forEach { comentario ->
+                                                            commentsCountMap[comentario.idPublicacao] = 
+                                                                commentsCountMap.getOrDefault(comentario.idPublicacao, 0) + 1
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                val mappedPosts = apiResponse.publicacoes.map { publicacao ->
+                                                    mapPublicacaoToPost(publicacao, commentsCountMap.getOrDefault(publicacao.id, 0))
+                                                }
                                                 posts.clear()
                                                 posts.addAll(mappedPosts)
                                                 errorMessage = null
                                             }
                                         }
                                     } catch (e: Exception) {
-                                        Log.e("HomeScreen", "Erro ao tentar novamente", e)
+                                        android.util.Log.e("HomeScreen", "Erro ao tentar novamente", e)
                                     } finally {
                                         isLoading = false
                                     }
@@ -424,6 +477,10 @@ fun PostItem(
 ) {
     var isLiked by remember { mutableStateOf(post.isInitiallyLiked) }
     var likesCount by remember { mutableStateOf(post.initialLikes) }
+    // Usar estado derivado que sempre reflete o tamanho atual da lista
+    val commentsCount by remember { 
+        derivedStateOf { maxOf(post.commentsCount, post.comments.size) }
+    }
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(
@@ -451,14 +508,14 @@ fun PostItem(
             placeholder = painterResource(id = R.drawable.img),
             error = painterResource(id = R.drawable.img),
             onSuccess = { 
-                Log.d("PostImage", "✅ Imagem da publicação carregada: ${post.postImageUrl}")
+                android.util.Log.d("PostImage", "✅ Imagem da publicação carregada: ${post.postImageUrl}")
             },
             onError = { error ->
-                Log.e("PostImage", "❌ Erro ao carregar imagem da publicação: ${post.postImageUrl}")
-                Log.e("PostImage", "Erro: ${error.result.throwable.message}")
+                android.util.Log.e("PostImage", "❌ Erro ao carregar imagem da publicação: ${post.postImageUrl}")
+                android.util.Log.e("PostImage", "Erro: ${error.result.throwable.message}")
             },
             onLoading = {
-                Log.d("PostImage", "🔄 Carregando imagem da publicação: ${post.postImageUrl}")
+                android.util.Log.d("PostImage", "🔄 Carregando imagem da publicação: ${post.postImageUrl}")
             }
         )
 
@@ -502,15 +559,16 @@ fun PostItem(
                     modifier = Modifier.size(28.dp),
                     tint = MaterialTheme.colorScheme.onBackground
                 )
-                if (post.comments.size > 0) {
+                if (commentsCount > 0) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.comments_count_compact, post.comments.size),
+                        text = stringResource(R.string.comments_count_compact, commentsCount),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
+                android.util.Log.d("PostItem", "Post ${post.id} tem ${commentsCount} comentários (${post.comments.size} na lista)")
             }
         }
 
@@ -559,11 +617,11 @@ fun CommentsSheetContent(
                     if (response.isSuccessful && response.body() != null) {
                         val comentarioResponse = response.body()!!
                         if (comentarioResponse.status) {
-                            Log.d("CommentsSheet", "=== PROCESSANDO COMENTÁRIOS DA API ===")
-                            Log.d("CommentsSheet", "Total de comentários: ${comentarioResponse.comentarios.size}")
+                            android.util.Log.d("CommentsSheet", "=== PROCESSANDO COMENTÁRIOS DA API ===")
+                            android.util.Log.d("CommentsSheet", "Total de comentários: ${comentarioResponse.comentarios.size}")
                             
                             val commentsFromApi = comentarioResponse.comentarios.map { comentarioApi ->
-                                Log.d("CommentsSheet", "Processando comentário ID: ${comentarioApi.id}")
+                                android.util.Log.d("CommentsSheet", "Processando comentário ID: ${comentarioApi.id}")
                                 mapComentarioApiToComment(comentarioApi, context) 
                             }
                             
@@ -572,12 +630,12 @@ fun CommentsSheetContent(
                             // Também atualizar a lista do post para manter sincronizado
                             post.comments.clear()
                             post.comments.addAll(commentsFromApi)
-                            Log.d("CommentsSheet", "Carregados ${commentsFromApi.size} comentários da API")
-                            Log.d("CommentsSheet", "Lista local agora tem ${comments.size} comentários")
+                            android.util.Log.d("CommentsSheet", "Carregados ${commentsFromApi.size} comentários da API")
+                            android.util.Log.d("CommentsSheet", "Lista local agora tem ${comments.size} comentários")
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e("CommentsSheet", "Erro ao carregar comentários", e)
+                    android.util.Log.e("CommentsSheet", "Erro ao carregar comentários", e)
                 } finally {
                     isLoadingComments = false
                 }
@@ -636,7 +694,7 @@ fun CommentsSheetContent(
                             val userId = UserPreferences.getUserId(context)
                             val userNickname = UserPreferences.getUserNickname(context)
                             
-                            Log.d("CommentsSheet", "Dados do usuário - ID: $userId, Nickname: $userNickname")
+                            android.util.Log.d("CommentsSheet", "Dados do usuário - ID: $userId, Nickname: $userNickname")
                             
                             val novoComentario = ComentarioRequest(
                                 conteudo = newCommentText,
@@ -644,9 +702,9 @@ fun CommentsSheetContent(
                                 idPublicacao = post.id,
                                 idUser = userId
                             )
-                            Log.d("CommentsSheet", "Enviando comentário: $novoComentario")
+                            android.util.Log.d("CommentsSheet", "Enviando comentário: $novoComentario")
                             val response = comentarioService.criarComentario(novoComentario)
-                            Log.d("CommentsSheet", "Resposta: código=${response.code()}, sucesso=${response.isSuccessful}")
+                            android.util.Log.d("CommentsSheet", "Resposta: código=${response.code()}, sucesso=${response.isSuccessful}")
                             
                             if (response.isSuccessful) {
                                 // Pegar foto do usuário logado (se disponível)
@@ -668,12 +726,12 @@ fun CommentsSheetContent(
                                 post.comments.add(0, newComment)
                                 newCommentText = ""
                                 
-                                Log.d("CommentsSheet", "Comentário adicionado localmente: ${newComment.userName} - ${newComment.text}")
+                                android.util.Log.d("CommentsSheet", "Comentário adicionado localmente: ${newComment.userName} - ${newComment.text}")
                                 onAddComment(newComment.text)
                             } else {
                             }
                         } catch (e: Exception) {
-                            Log.e("CommentsSheet", "Erro ao enviar comentário", e)
+                            android.util.Log.e("CommentsSheet", "Erro ao enviar comentário", e)
                         } finally {
                             isSendingComment = false
                         }
@@ -706,12 +764,12 @@ fun CommentItem(comment: Comment) {
     var isLiked by remember { mutableStateOf(comment.isInitiallyLiked) }
     var likesCount by remember { mutableStateOf(comment.initialLikes) }
     
-    Log.d("CommentItem", "=== RENDERIZANDO COMENTÁRIO ===")
-    Log.d("CommentItem", "ID: ${comment.id}")
-    Log.d("CommentItem", "UserName: ${comment.userName}")
-    Log.d("CommentItem", "Foto URL: '${comment.userProfileImageUrl}'")
-    Log.d("CommentItem", "Texto: ${comment.text}")
-    Log.d("CommentItem", "===============================")
+    android.util.Log.d("CommentItem", "=== RENDERIZANDO COMENTÁRIO ===")
+    android.util.Log.d("CommentItem", "ID: ${comment.id}")
+    android.util.Log.d("CommentItem", "UserName: ${comment.userName}")
+    android.util.Log.d("CommentItem", "Foto URL: '${comment.userProfileImageUrl}'")
+    android.util.Log.d("CommentItem", "Texto: ${comment.text}")
+    android.util.Log.d("CommentItem", "===============================")
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -730,14 +788,14 @@ fun CommentItem(comment: Comment) {
                 error = painterResource(id = R.drawable.profile_placeholder),
                 contentScale = ContentScale.Crop,
                 onSuccess = { 
-                    Log.d("AsyncImage", "✅ Imagem carregada com sucesso: ${comment.userProfileImageUrl}")
+                    android.util.Log.d("AsyncImage", "✅ Imagem carregada com sucesso: ${comment.userProfileImageUrl}")
                 },
                 onError = { error ->
-                    Log.e("AsyncImage", "❌ Erro ao carregar imagem: ${comment.userProfileImageUrl}")
-                    Log.e("AsyncImage", "Erro: ${error.result.throwable.message}")
+                    android.util.Log.e("AsyncImage", "❌ Erro ao carregar imagem: ${comment.userProfileImageUrl}")
+                    android.util.Log.e("AsyncImage", "Erro: ${error.result.throwable.message}")
                 },
                 onLoading = {
-                    Log.d("AsyncImage", "🔄 Carregando imagem: ${comment.userProfileImageUrl}")
+                    android.util.Log.d("AsyncImage", "🔄 Carregando imagem: ${comment.userProfileImageUrl}")
                 }
             )
             Spacer(modifier = Modifier.width(12.dp))

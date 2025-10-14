@@ -13,6 +13,9 @@ interface ComentarioService {
     @GET("v1/gymbuddy/comentario")
     suspend fun getComentarios(@Query("id_publicacao") idPublicacao: Int): Response<ComentarioResponse>
     
+    @GET("v1/gymbuddy/comentario")
+    suspend fun getAllComentarios(): Response<ComentarioResponse>
+    
     @POST("v1/gymbuddy/comentario")
     @Headers(
         "Content-Type: application/json",
