@@ -20,6 +20,12 @@ interface NotificacaoService {
     ): Response<NotificacaoResponse>
     
     /**
+     * Busca todas as notificações usando a view detalhada
+     */
+    @GET("v1/gymbuddy/view/notificacoes")
+    suspend fun getTodasNotificacoes(): Response<NotificacaoResponse>
+    
+    /**
      * Busca apenas notificações não lidas de um usuário
      */
     @GET("v1/gymbuddy/notificacoes/usuario/{idUsuario}/nao-lidas")

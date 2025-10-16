@@ -252,9 +252,27 @@ fun HomeScreen(
                                 if (comentariosResponse.isSuccessful && comentariosResponse.body() != null) {
                                     val comentariosApiResponse = comentariosResponse.body()!!
                                     if (comentariosApiResponse.status) {
-                                        val count = comentariosApiResponse.comentarios.size
+                                        android.util.Log.d("HomeScreen", "🔍 DEBUG FILTRO - Publicação ${publicacao.id}:")
+                                        android.util.Log.d("HomeScreen", "  📦 Total comentários da API: ${comentariosApiResponse.comentarios.size}")
+                                        
+                                        // Log detalhado ANTES do filtro
+                                        comentariosApiResponse.comentarios.forEachIndexed { index, comentario ->
+                                            val publicacaoDoComentario = if (comentario.publicacao.isNotEmpty()) comentario.publicacao[0].id else "null"
+                                            val pertence = comentario.publicacao.isNotEmpty() && comentario.publicacao[0].id == publicacao.id
+                                            android.util.Log.d("HomeScreen", "  📝 Comentário $index: ID=${comentario.id}, pertence à pub=${publicacaoDoComentario}, desejada=${publicacao.id}")
+                                            android.util.Log.d("HomeScreen", "      Filtrar? ${if (pertence) "✅ SIM" else "❌ NÃO"}")
+                                        }
+                                        
+                                        // FILTRAR usando o ID da publicação do array publicacao
+                                        val comentariosFiltrados = comentariosApiResponse.comentarios.filter { comentario ->
+                                            // Verificar se o comentário pertence a esta publicação usando o array publicacao
+                                            comentario.publicacao.isNotEmpty() && comentario.publicacao[0].id == publicacao.id
+                                        }
+                                        
+                                        val count = comentariosFiltrados.size
                                         commentsCountMap[publicacao.id] = count
-                                        android.util.Log.d("HomeScreen", "Publicação ${publicacao.id} tem ${count} comentários")
+                                        
+                                        android.util.Log.d("HomeScreen", "  ✅ Resultado: ${count} comentários para publicação ${publicacao.id}")
                                     }
                                 } else {
                                     android.util.Log.w("HomeScreen", "Erro ao buscar comentários da publicação ${publicacao.id}")
@@ -424,33 +442,71 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = {
+                                // Usar a mesma lógica do LaunchedEffect para manter consistência
                                 isLoading = true
                                 coroutineScope.launch {
                                     try {
-                                        // Buscar publicações e comentários em paralelo
                                         val publicacaoService = RetrofitFactory.getPublicacaoService()
                                         val comentarioService = RetrofitFactory.getComentarioService()
+                                        val curtidaService = RetrofitFactory.getCurtidaService()
                                         
                                         val publicacoesResponse = publicacaoService.getPublicacoes()
-                                        val comentariosResponse = comentarioService.getAllComentarios()
+                                        val curtidasResponse = curtidaService.getAllCurtidas()
                                         
                                         if (publicacoesResponse.isSuccessful && publicacoesResponse.body() != null) {
                                             val apiResponse = publicacoesResponse.body()!!
                                             if (apiResponse.status) {
-                                                // Contar comentários por publicação
-                                                val commentsCountMap = mutableMapOf<Int, Int>()
-                                                if (comentariosResponse.isSuccessful && comentariosResponse.body() != null) {
-                                                    val comentariosApiResponse = comentariosResponse.body()!!
-                                                    if (comentariosApiResponse.status) {
-                                                        comentariosApiResponse.comentarios.forEach { comentario ->
-                                                            commentsCountMap[comentario.idPublicacao] = 
-                                                                commentsCountMap.getOrDefault(comentario.idPublicacao, 0) + 1
+                                                // Processar curtidas do usuário logado
+                                                val userId = UserPreferences.getUserId(context)
+                                                val userLikedPosts = mutableSetOf<Int>()
+                                                val curtidasCountMap = mutableMapOf<Int, Int>()
+                                                
+                                                // Processar curtidas
+                                                if (curtidasResponse.isSuccessful && curtidasResponse.body() != null) {
+                                                    val curtidasApiResponse = curtidasResponse.body()!!
+                                                    if (curtidasApiResponse.status && curtidasApiResponse.curtidas != null) {
+                                                        curtidasApiResponse.curtidas.forEach { curtida ->
+                                                            if (curtida.user.isNotEmpty() && curtida.publicacao.isNotEmpty()) {
+                                                                val curtidaUserId = curtida.user[0].id
+                                                                val curtidaPostId = curtida.publicacao[0].id
+                                                                
+                                                                curtidasCountMap[curtidaPostId] = curtidasCountMap.getOrDefault(curtidaPostId, 0) + 1
+                                                                
+                                                                if (curtidaUserId == userId) {
+                                                                    userLikedPosts.add(curtidaPostId)
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
                                                 
+                                                // Contar comentários por publicação individualmente (mesma lógica)
+                                                val commentsCountMap = mutableMapOf<Int, Int>()
+                                                apiResponse.publicacoes.forEach { publicacao ->
+                                                    try {
+                                                        val comentariosResponse = comentarioService.getComentarios(publicacao.id)
+                                                        if (comentariosResponse.isSuccessful && comentariosResponse.body() != null) {
+                                                            val comentariosApiResponse = comentariosResponse.body()!!
+                                                            if (comentariosApiResponse.status) {
+                                                                val count = comentariosApiResponse.comentarios.size
+                                                                commentsCountMap[publicacao.id] = count
+                                                            }
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        commentsCountMap[publicacao.id] = 0
+                                                    }
+                                                }
+                                                
                                                 val mappedPosts = apiResponse.publicacoes.map { publicacao ->
-                                                    mapPublicacaoToPost(publicacao, commentsCountMap.getOrDefault(publicacao.id, 0))
+                                                    val isLiked = userLikedPosts.contains(publicacao.id)
+                                                    val realLikesCount = curtidasCountMap.getOrDefault(publicacao.id, 0)
+                                                    
+                                                    mapPublicacaoToPost(
+                                                        publicacao = publicacao,
+                                                        actualCommentsCount = commentsCountMap.getOrDefault(publicacao.id, 0),
+                                                        actualLikesCount = realLikesCount,
+                                                        isLikedByUser = isLiked
+                                                    )
                                                 }
                                                 posts.clear()
                                                 posts.addAll(mappedPosts)
@@ -459,6 +515,7 @@ fun HomeScreen(
                                         }
                                     } catch (e: Exception) {
                                         android.util.Log.e("HomeScreen", "Erro ao tentar novamente", e)
+                                        errorMessage = "Erro de conexão. Tente novamente."
                                     } finally {
                                         isLoading = false
                                     }
@@ -746,7 +803,25 @@ fun CommentsSheetContent(
                             android.util.Log.d("CommentsSheet", "=== PROCESSANDO COMENTÁRIOS DA API ===")
                             android.util.Log.d("CommentsSheet", "Total de comentários: ${comentarioResponse.comentarios.size}")
                             
-                            val commentsFromApi = comentarioResponse.comentarios.map { comentarioApi ->
+                            android.util.Log.d("CommentsSheet", "📦 Total comentários da API: ${comentarioResponse.comentarios.size}")
+                            android.util.Log.d("CommentsSheet", "🔍 Publicação ID: ${post.id}")
+                            
+                            // Log dos comentários para debug
+                            comentarioResponse.comentarios.forEachIndexed { index, comentario ->
+                                val publicacaoDoComentario = if (comentario.publicacao.isNotEmpty()) comentario.publicacao[0].id else "null"
+                                val pertence = comentario.publicacao.isNotEmpty() && comentario.publicacao[0].id == post.id
+                                android.util.Log.d("CommentsSheet", "  📝 Comentário $index: ID=${comentario.id}, pertence à pub=${publicacaoDoComentario}, post=${post.id}")
+                                android.util.Log.d("CommentsSheet", "      Filtrar? ${if (pertence) "✅ SIM" else "❌ NÃO"}")
+                            }
+                            
+                            // FILTRAR comentários para mostrar apenas os desta publicação específica
+                            val comentariosFiltrados = comentarioResponse.comentarios.filter { comentarioApi ->
+                                // Verificar se o comentário realmente pertence a esta publicação usando o array publicacao
+                                comentarioApi.publicacao.isNotEmpty() && comentarioApi.publicacao[0].id == post.id
+                            }
+                            android.util.Log.d("CommentsSheet", "✅ Comentários a serem exibidos: ${comentariosFiltrados.size}")
+                            
+                            val commentsFromApi = comentariosFiltrados.map { comentarioApi ->
                                 android.util.Log.d("CommentsSheet", "Processando comentário ID: ${comentarioApi.id}")
                                 mapComentarioApiToComment(comentarioApi, context) 
                             }
@@ -872,7 +947,7 @@ fun CommentsSheetContent(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Send,
+                        imageVector = Icons.Default.ArrowForward,
                         contentDescription = "Enviar comentário",
                         tint = if (isSendEnabled) MaterialTheme.colorScheme.secondary else Color.Gray
                     )
