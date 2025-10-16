@@ -77,7 +77,7 @@ data class Post(
 // =================================================================================
 // 2. FUNÇÕES DE MAPEAMENTO DA API PARA UI
 // =================================================================================
-fun mapPublicacaoToPost(publicacao: Publicacao, actualCommentsCount: Int = 0, isLikedByUser: Boolean = false): Post {
+fun mapPublicacaoToPost(publicacao: Publicacao, actualCommentsCount: Int = 0, actualLikesCount: Int = 0, isLikedByUser: Boolean = false): Post {
     // Pega o nickname do primeiro usuário do array, ou usa um fallback
     val userName = if (publicacao.user.isNotEmpty()) {
         "@${publicacao.user[0].nickname}"
@@ -94,7 +94,7 @@ fun mapPublicacaoToPost(publicacao: Publicacao, actualCommentsCount: Int = 0, is
         postImageUrl = publicacao.imagem, // Mapear a URL da imagem da publicação
         gymName = publicacao.localizacao,
         caption = publicacao.descricao,
-        currentLikes = publicacao.curtidasCount,
+        currentLikes = actualLikesCount, // Usar contagem real das curtidas
         isCurrentlyLiked = isLikedByUser,
         commentsCount = actualCommentsCount, // Usar contagem real dos comentários
         comments = mutableListOf()
@@ -175,18 +175,72 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             try {
-                // Buscar publicações e comentários (curtidas serão carregadas individualmente)
+                // Buscar publicações, comentários e curtidas
                 val publicacaoService = RetrofitFactory.getPublicacaoService()
                 val comentarioService = RetrofitFactory.getComentarioService()
+                val curtidaService = RetrofitFactory.getCurtidaService()
+                
+                android.util.Log.d("HomeScreen", "=== INICIANDO CARREGAMENTO ===")
                 
                 val publicacoesResponse = publicacaoService.getPublicacoes()
+                val curtidasResponse = curtidaService.getAllCurtidas()
+                
+                android.util.Log.d("HomeScreen", "Publicações response: ${publicacoesResponse.isSuccessful}")
+                android.util.Log.d("HomeScreen", "Curtidas response: ${curtidasResponse.isSuccessful}")
                 
                 if (publicacoesResponse.isSuccessful && publicacoesResponse.body() != null) {
                     val apiResponse = publicacoesResponse.body()!!
                     if (apiResponse.status) {
-                        // Simplificar: iniciar todos os posts como não curtidos
-                        // O usuário pode curtir durante a sessão e o estado persiste localmente
-                        android.util.Log.d("HomeScreen", "Carregando posts sem estado de curtidas inicial")
+                        // Processar curtidas do usuário logado
+                        val userId = UserPreferences.getUserId(context)
+                        val userLikedPosts = mutableSetOf<Int>()
+                        val curtidasCountMap = mutableMapOf<Int, Int>() // Contar curtidas por publicação
+                        
+                        android.util.Log.d("HomeScreen", "Processando curtidas para usuário: $userId")
+                        
+                        // Processar resposta de curtidas
+                        if (curtidasResponse.isSuccessful && curtidasResponse.body() != null) {
+                            try {
+                                val curtidasApiResponse = curtidasResponse.body()!!
+                                android.util.Log.d("HomeScreen", "Curtidas API Response status: ${curtidasApiResponse.status}")
+                                
+                                if (curtidasApiResponse.status && curtidasApiResponse.curtidas != null) {
+                                    android.util.Log.d("HomeScreen", "Total curtidas na API: ${curtidasApiResponse.curtidas.size}")
+                                    
+                                    curtidasApiResponse.curtidas.forEach { curtida ->
+                                        if (curtida.user.isNotEmpty() && curtida.publicacao.isNotEmpty()) {
+                                            val curtidaUserId = curtida.user[0].id
+                                            val curtidaPostId = curtida.publicacao[0].id
+                                            
+                                            android.util.Log.d("HomeScreen", "Curtida: User $curtidaUserId curtiu Post $curtidaPostId")
+                                            
+                                            // Contar curtidas por publicação
+                                            curtidasCountMap[curtidaPostId] = curtidasCountMap.getOrDefault(curtidaPostId, 0) + 1
+                                            
+                                            // Verificar se o usuário atual curtiu este post
+                                            if (curtidaUserId == userId) {
+                                                userLikedPosts.add(curtidaPostId)
+                                                android.util.Log.d("HomeScreen", "✅ Usuário atual curtiu post $curtidaPostId")
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    android.util.Log.w("HomeScreen", "Status false ou curtidas null")
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("HomeScreen", "Erro ao processar curtidas", e)
+                            }
+                        } else {
+                            android.util.Log.e("HomeScreen", "Erro na resposta de curtidas: ${curtidasResponse.code()}")
+                            try {
+                                android.util.Log.e("HomeScreen", "Error body: ${curtidasResponse.errorBody()?.string()}")
+                            } catch (e: Exception) {
+                                android.util.Log.e("HomeScreen", "Erro ao ler error body", e)
+                            }
+                        }
+                        
+                        android.util.Log.d("HomeScreen", "Posts curtidos pelo usuário: $userLikedPosts")
+                        android.util.Log.d("HomeScreen", "Contagem de curtidas por post: $curtidasCountMap")
                         
                         // Contar comentários por publicação individualmente
                         val commentsCountMap = mutableMapOf<Int, Int>()
@@ -214,10 +268,15 @@ fun HomeScreen(
                         android.util.Log.d("HomeScreen", "Mapa final de contagem: $commentsCountMap")
                         
                         val mappedPosts = apiResponse.publicacoes.map { publicacao ->
+                            val isLiked = userLikedPosts.contains(publicacao.id)
+                            val realLikesCount = curtidasCountMap.getOrDefault(publicacao.id, 0)
+                            android.util.Log.d("HomeScreen", "Post ${publicacao.id}: DB_curtidas=${publicacao.curtidasCount}, REAL_curtidas=$realLikesCount, isLiked=$isLiked")
+                            
                             mapPublicacaoToPost(
                                 publicacao = publicacao,
                                 actualCommentsCount = commentsCountMap.getOrDefault(publicacao.id, 0),
-                                isLikedByUser = false // Inicialmente não curtido, usuário curte durante sessão
+                                actualLikesCount = realLikesCount, // Contagem real baseada na API de curtidas
+                                isLikedByUser = isLiked // Estado real das curtidas do servidor
                             )
                         }
                         posts.clear()
@@ -555,19 +614,26 @@ fun PostItem(
                             val curtidaService = RetrofitFactory.getCurtidaService()
                             val userId = UserPreferences.getUserId(context)
                             
-                            // Toggle curtida (API decide se adiciona ou remove)
+                            // Curtir/Descurtir usando o mesmo endpoint (API decide baseado no estado atual)
                             val curtidaRequest = CurtidaRequest(
                                 idUser = userId,
                                 idPublicacao = post.id
                             )
                             
-                            android.util.Log.d("PostItem", "Toggle curtida: $curtidaRequest")
-                            val response = curtidaService.toggleCurtida(curtidaRequest)
+                            android.util.Log.d("PostItem", "Enviando curtida request: $curtidaRequest")
+                            android.util.Log.d("PostItem", "Estado atual: isLiked=$isLiked")
+                            
+                            val response = curtidaService.adicionarCurtida(curtidaRequest)
                             
                             if (response.isSuccessful) {
                                 android.util.Log.d("PostItem", "Curtida processada com sucesso")
                             } else {
                                 android.util.Log.e("PostItem", "Erro ao processar curtida: ${response.code()}")
+                                try {
+                                    android.util.Log.e("PostItem", "Error body: ${response.errorBody()?.string()}")
+                                } catch (e: Exception) {
+                                    android.util.Log.e("PostItem", "Erro ao ler error body", e)
+                                }
                                 return@launch
                             }
                             

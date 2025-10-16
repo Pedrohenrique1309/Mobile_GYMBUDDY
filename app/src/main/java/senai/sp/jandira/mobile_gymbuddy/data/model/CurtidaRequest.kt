@@ -15,20 +15,36 @@ data class CurtidaRequest(
 )
 
 /**
- * Modelo de curtida retornado pela API
+ * Modelo de curtida retornado pela API (estrutura real)
  */
 data class CurtidaItem(
     @SerializedName("id")
     val id: Int,
     
-    @SerializedName("id_publicacao")
-    val idPublicacao: Int,
+    @SerializedName("user")
+    val user: List<CurtidaUser>,
     
-    @SerializedName("id_user")
-    val idUser: Int,
+    @SerializedName("publicacao")
+    val publicacao: List<CurtidaPublicacao>
+)
+
+data class CurtidaUser(
+    @SerializedName("id")
+    val id: Int,
     
-    @SerializedName("data_curtida")
-    val dataCurtida: String? = null
+    @SerializedName("nome")
+    val nome: String,
+    
+    @SerializedName("nickname")
+    val nickname: String
+)
+
+data class CurtidaPublicacao(
+    @SerializedName("id")
+    val id: Int,
+    
+    @SerializedName("descricao")
+    val descricao: String
 )
 
 /**
