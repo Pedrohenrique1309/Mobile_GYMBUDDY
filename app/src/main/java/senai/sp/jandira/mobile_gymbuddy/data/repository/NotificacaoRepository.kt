@@ -38,15 +38,21 @@ class NotificacaoRepository {
      */
     suspend fun getTodasNotificacoes(): Flow<List<Notificacao>> = flow {
         try {
+            Log.d("NotificacaoRepository", "🔍 Fazendo requisição para notificações...")
             val response = notificacaoService.getTodasNotificacoes()
+            Log.d("NotificacaoRepository", "📡 Resposta recebida: ${response.isSuccessful}, código: ${response.code()}")
+            
             if (response.isSuccessful && response.body()?.status == true) {
-                emit(response.body()?.notificacoes ?: emptyList())
+                val notificacoes = response.body()?.notificacoes ?: emptyList()
+                Log.d("NotificacaoRepository", "✅ Notificações encontradas: ${notificacoes.size}")
+                emit(notificacoes)
             } else {
-                Log.e("NotificacaoRepository", "Erro ao buscar todas notificações: ${response.errorBody()?.string()}")
+                Log.e("NotificacaoRepository", "❌ Erro ao buscar todas notificações: ${response.errorBody()?.string()}")
+                Log.e("NotificacaoRepository", "Status da resposta: ${response.body()?.status}")
                 emit(emptyList())
             }
         } catch (e: Exception) {
-            Log.e("NotificacaoRepository", "Exceção ao buscar todas notificações", e)
+            Log.e("NotificacaoRepository", "💥 Exceção ao buscar todas notificações", e)
             emit(emptyList())
         }
     }

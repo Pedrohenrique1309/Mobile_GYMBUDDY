@@ -180,19 +180,52 @@ fun NotificacoesScreen(navController: NavController) {
     // Repository para buscar notificações
     val notificacaoRepository = remember { NotificacaoRepository() }
     
-    // Buscar notificações ao carregar a tela
-    LaunchedEffect(Unit) {
+    // Função para recarregar notificações
+    fun recarregarNotificacoes() {
+        isLoading = true
         coroutineScope.launch {
             try {
                 val userId = UserPreferences.getUserId(context)
-                // Usar a view de notificações detalhada
+                android.util.Log.d("NotificacoesScreen", "🔄 Recarregando notificações...")
+                
                 notificacaoRepository.getTodasNotificacoes().collect { notifs ->
-                    // Filtrar notificações para o usuário logado
                     val notificacoesDoUsuario = notifs.filter { it.idUsuarioDestino == userId }
                     notificacoes = notificacoesDoUsuario
                     isLoading = false
                 }
             } catch (e: Exception) {
+                android.util.Log.e("NotificacoesScreen", "❌ Erro ao recarregar notificações", e)
+                errorMessage = "Erro ao carregar notificações: ${e.message}"
+                isLoading = false
+            }
+        }
+    }
+    
+    // Buscar notificações ao carregar a tela
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            try {
+                val userId = UserPreferences.getUserId(context)
+                android.util.Log.d("NotificacoesScreen", "🔔 Carregando notificações para usuário: $userId")
+                
+                // Usar a view de notificações detalhada
+                notificacaoRepository.getTodasNotificacoes().collect { notifs ->
+                    android.util.Log.d("NotificacoesScreen", "📦 Total notificações da API: ${notifs.size}")
+                    
+                    // Log de cada notificação para debug
+                    notifs.forEachIndexed { index, notif ->
+                        android.util.Log.d("NotificacoesScreen", "  📝 Notificação $index: destino=${notif.idUsuarioDestino}, origem=${notif.idUsuarioOrigem}, tipo=${notif.tipoNotificacao}")
+                    }
+                    
+                    // Filtrar notificações para o usuário logado
+                    val notificacoesDoUsuario = notifs.filter { it.idUsuarioDestino == userId }
+                    android.util.Log.d("NotificacoesScreen", "✅ Notificações filtradas para usuário $userId: ${notificacoesDoUsuario.size}")
+                    
+                    notificacoes = notificacoesDoUsuario
+                    isLoading = false
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("NotificacoesScreen", "❌ Erro ao carregar notificações", e)
                 errorMessage = "Erro ao carregar notificações: ${e.message}"
                 isLoading = false
             }
@@ -229,8 +262,15 @@ fun NotificacoesScreen(navController: NavController) {
                 modifier = Modifier.height(80.dp)
             )
             
-            // Espaço vazio para manter o layout balanceado
-            Spacer(modifier = Modifier.width(48.dp))
+            // Botão de refresh
+            IconButton(onClick = { recarregarNotificacoes() }) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Atualizar notificações",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
         
         // Lista de notificações

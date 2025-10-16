@@ -26,7 +26,7 @@ data class Notificacao(
     val dataCriacao: String,
     
     @SerializedName("is_lida")
-    val isLida: Boolean,
+    val isLidaInt: Int,
     
     @SerializedName("id_publicacao")
     val idPublicacao: Int?,
@@ -36,7 +36,11 @@ data class Notificacao(
     
     @SerializedName("texto_notificacao")
     val textoNotificacao: String
-)
+) {
+    // Propriedade computed para converter Int em Boolean
+    val isLida: Boolean
+        get() = isLidaInt == 1
+}
 
 /**
  * Response wrapper para a lista de notificações
@@ -45,7 +49,13 @@ data class NotificacaoResponse(
     @SerializedName("status")
     val status: Boolean,
     
-    @SerializedName("notificacoes")
+    @SerializedName("status_code")
+    val statusCode: Int,
+    
+    @SerializedName("itens")
+    val itens: Int,
+    
+    @SerializedName("view")
     val notificacoes: List<Notificacao>
 )
 
