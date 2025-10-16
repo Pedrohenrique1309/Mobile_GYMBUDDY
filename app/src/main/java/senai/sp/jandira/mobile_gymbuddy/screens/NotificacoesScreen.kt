@@ -1,12 +1,15 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
 import android.content.res.Configuration
-import android.util.Log
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,225 +19,214 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import kotlinx.coroutines.launch
 import senai.sp.jandira.mobile_gymbuddy.R
-import senai.sp.jandira.mobile_gymbuddy.data.model.*
-import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
-import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
-import java.text.SimpleDateFormat
-import java.util.*
+
+// =================================================================================
+// 1. MODELOS DE DADOS PARA NOTIFICAÇÕES
+// =================================================================================
+
+data class NotificationItem(
+    val id: Int,
+    val type: NotificationType,
+    val userName: String,
+    val postThumbnail: String? = null,
+    val commentText: String? = null
+)
+
+enum class NotificationType {
+    LIKE, FOLLOW, COMMENT
+}
+
+// Dados mockados conforme a imagem
+val mockNotifications = listOf(
+    NotificationItem(1, NotificationType.LIKE, "mailton_jose", "https://example.com/post1.jpg"),
+    NotificationItem(2, NotificationType.FOLLOW, "mailton_jose"),
+    NotificationItem(3, NotificationType.COMMENT, "mailton_jose", "https://example.com/post2.jpg", "parabéns, continue assim que você alc..."),
+    NotificationItem(4, NotificationType.LIKE, "mailton_jose", "https://example.com/post3.jpg"),
+    NotificationItem(5, NotificationType.FOLLOW, "mailton_jose"),
+    NotificationItem(6, NotificationType.COMMENT, "mailton_jose", "https://example.com/post4.jpg", "parabéns, continue assim que você alc..."),
+    NotificationItem(7, NotificationType.LIKE, "mailton_jose", "https://example.com/post5.jpg"),
+    NotificationItem(8, NotificationType.FOLLOW, "mailton_jose"),
+    NotificationItem(9, NotificationType.COMMENT, "mailton_jose", "https://example.com/post6.jpg", "parabéns, continue assim que você alc...")
+)
 
 /**
- * Tela de Notificações que consome a VIEW vw_notificacoes_detalhadas
- * As notificações são criadas automaticamente pelas TRIGGERS do banco
+ * Tela de Notificações seguindo exatamente o design da imagem fornecida
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificacoesScreen(navController: NavController) {
+    val darkTheme = isSystemInDarkTheme()
+    val logoRes = if (darkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
     
-    val notificacoes = remember { mutableStateListOf<Notificacao>() }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
-    
-    // Carregar notificações usando a view otimizada
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            try {
-                val userId = UserPreferences.getUserId(context)
-                val notificacaoService = RetrofitFactory.getNotificacaoService()
-                val response = notificacaoService.getNotificacoesUsuario(userId)
-                
-                if (response.isSuccessful && response.body() != null) {
-                    val notificacaoResponse = response.body()!!
-                    if (notificacaoResponse.status) {
-                        notificacoes.clear()
-                        notificacoes.addAll(notificacaoResponse.notificacoes)
-                        errorMessage = null
-                        Log.d("NotificacoesScreen", "✅ ${notificacaoResponse.notificacoes.size} notificações carregadas")
-                    } else {
-                        errorMessage = "Erro ao carregar notificações"
-                    }
-                } else {
-                    errorMessage = "Erro na resposta: ${response.code()}"
-                }
-            } catch (e: Exception) {
-                errorMessage = "Erro de conexão: ${e.message}"
-                Log.e("NotificacoesScreen", "Erro ao carregar notificações", e)
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Notificações") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
-                    }
-                },
-                actions = {
-                    if (notificacoes.any { !it.isLida }) {
-                        TextButton(
-                            onClick = {
-                                coroutineScope.launch {
-                                    try {
-                                        val userId = UserPreferences.getUserId(context)
-                                        val notificacaoService = RetrofitFactory.getNotificacaoService()
-                                        notificacaoService.marcarTodasComoLidas(userId)
-                                        
-                                        // Atualizar UI localmente
-                                        notificacoes.replaceAll { it.copy(isLida = true) }
-                                        Log.d("NotificacoesScreen", "✅ Todas as notificações marcadas como lidas")
-                                    } catch (e: Exception) {
-                                        Log.e("NotificacoesScreen", "Erro ao marcar como lidas", e)
-                                    }
-                                }
-                            }
-                        ) {
-                            Text("Marcar todas como lidas")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }
-    ) { innerPadding ->
-        Box(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Header com logo e ícones
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            when {
-                isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.secondary
+            // Seta voltar
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Voltar",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            // Logo GYM BUDDY
+            Image(
+                painter = painterResource(id = logoRes),
+                contentDescription = "Logo GYM BUDDY",
+                modifier = Modifier.height(40.dp)
+            )
+            
+            // Ícone de notificações com badge
+            Box {
+                IconButton(onClick = { navController.navigate("home") }) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notificações",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
-                errorMessage != null -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ErrorOutline,
-                            contentDescription = "Erro",
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = errorMessage!!,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
+                // Badge "99+"
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .offset(x = 12.dp, y = (-4).dp)
+                        .background(
+                            MaterialTheme.colorScheme.error,
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "99+",
+                        color = MaterialTheme.colorScheme.onError,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                notificacoes.isEmpty() -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NotificationsOff,
-                            contentDescription = "Sem notificações",
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Você não tem notificações",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Quando alguém curtir ou comentar em suas publicações, você verá aqui!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            }
+        }
+        
+        // Lista de notificações
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(mockNotifications) { notification ->
+                when (notification.type) {
+                    NotificationType.LIKE -> LikeNotificationCard(notification)
+                    NotificationType.FOLLOW -> FollowNotificationCard(notification)
+                    NotificationType.COMMENT -> CommentNotificationCard(notification)
                 }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        items(notificacoes) { notificacao ->
-                            NotificacaoItem(
-                                notificacao = notificacao,
-                                onClick = {
-                                    coroutineScope.launch {
-                                        // Marcar como lida ao clicar
-                                        if (!notificacao.isLida) {
-                                            try {
-                                                val notificacaoService = RetrofitFactory.getNotificacaoService()
-                                                notificacaoService.marcarComoLida(notificacao.id)
-                                                
-                                                // Atualizar UI
-                                                val index = notificacoes.indexOf(notificacao)
-                                                if (index != -1) {
-                                                    notificacoes[index] = notificacao.copy(isLida = true)
-                                                }
-                                            } catch (e: Exception) {
-                                                Log.e("NotificacoesScreen", "Erro ao marcar como lida", e)
-                                            }
-                                        }
-                                        
-                                        // Navegar para a publicação se disponível
-                                        notificacao.idPublicacao?.let { publicacaoId ->
-                                            navController.navigate("publicacao/$publicacaoId")
-                                        }
-                                    }
-                                }
+            }
+        }
+        
+        // NavigationBar inferior - Mesmo da HomeScreen
+        NavigationBar {
+            val items = listOf("Home", "Treinos", "Conquistas", "Perfil")
+            val selectedItem = 0 // Home é o item selecionado (vindo das notificações)
+            
+            items.forEachIndexed { index, item ->
+                NavigationBarItem(
+                    icon = {
+                        // Define a cor baseada no estado de seleção do item
+                        val iconColor = if (selectedItem == index) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+
+                        when (item) {
+                            "Home" -> Icon(
+                                imageVector = Icons.Filled.Home,
+                                contentDescription = item,
+                                modifier = Modifier.size(28.dp),
+                                tint = iconColor
                             )
+                            "Treinos" -> Icon(
+                                imageVector = Icons.Default.FitnessCenter,
+                                contentDescription = item,
+                                modifier = Modifier.size(28.dp),
+                                tint = iconColor
+                            )
+                            "Conquistas" -> Icon(
+                                imageVector = Icons.Default.SmartToy,
+                                contentDescription = item,
+                                modifier = Modifier.size(28.dp),
+                                tint = iconColor
+                            )
+                            "Perfil" -> {
+                                BadgedBox(
+                                    badge = {
+                                        Badge { Text("3") }
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Person,
+                                        contentDescription = "Perfil com notificação",
+                                        modifier = Modifier.size(28.dp),
+                                        tint = iconColor
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    selected = selectedItem == index,
+                    onClick = { 
+                        when (item) {
+                            "Home" -> navController.navigate("home")
+                            // Outras navegações podem ser adicionadas aqui
                         }
                     }
-                }
+                )
             }
         }
     }
 }
 
+// =================================================================================
+// 2. COMPONENTES ESPECÍFICOS PARA CADA TIPO DE NOTIFICAÇÃO
+// =================================================================================
+
+/**
+ * Componente para notificações de curtida - "curtiu sua publicação"
+ */
 @Composable
-fun NotificacaoItem(
-    notificacao: Notificacao,
-    onClick: () -> Unit
-) {
-    val backgroundColor = if (!notificacao.isLida) {
-        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-    } else {
-        Color.Transparent
-    }
-    
+fun LikeNotificationCard(notification: NotificationItem) {
     Card(
-        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(vertical = 2.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color.Red),
         colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (!notificacao.isLida) 2.dp else 0.dp
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
@@ -243,87 +235,187 @@ fun NotificacaoItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ícone baseado no tipo de notificação
-            val iconInfo = when (notificacao.tipoNotificacao) {
-                TipoNotificacao.CURTIDA_PUBLICACAO.valor -> {
-                    Icons.Default.Favorite to MaterialTheme.colorScheme.secondary
-                }
-                TipoNotificacao.COMENTARIO.valor -> {
-                    Icons.Default.ChatBubble to MaterialTheme.colorScheme.primary
-                }
-                TipoNotificacao.CURTIDA_COMENTARIO.valor -> {
-                    Icons.Default.ThumbUp to MaterialTheme.colorScheme.tertiary
-                }
-                else -> Icons.Default.Notifications to MaterialTheme.colorScheme.onSurface
+            // Avatar do usuário
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Avatar",
+                    tint = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.size(24.dp)
+                )
             }
             
-            Icon(
-                imageVector = iconInfo.first,
-                contentDescription = notificacao.tipoNotificacao,
-                tint = iconInfo.second,
-                modifier = Modifier.size(24.dp)
-            )
+            Spacer(modifier = Modifier.width(12.dp))
             
-            Spacer(modifier = Modifier.width(16.dp))
-            
+            // Texto da notificação
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = notificacao.textoNotificacao,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (!notificacao.isLida) FontWeight.Bold else FontWeight.Normal,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Text(
-                    text = formatarTempo(notificacao.dataCriacao),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    buildAnnotatedString {
+                        withStyle(style = SpanStyle(color = Color.Red, fontWeight = FontWeight.Bold)) {
+                            append(notification.userName)
+                        }
+                        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurface)) {
+                            append(" curtiu sua publicação")
+                        }
+                    },
+                    fontSize = 14.sp
                 )
             }
             
-            if (!notificacao.isLida) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.secondary)
-                )
-            }
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            // Miniatura da publicação
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant)
+            )
         }
     }
 }
 
 /**
- * Formata a data da notificação para exibição amigável
+ * Componente para notificações de seguidor - "começou a seguir você"
  */
-fun formatarTempo(dataString: String): String {
-    return try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        val data = inputFormat.parse(dataString)
-        val agora = Date()
-        
-        val diffInMillis = agora.time - (data?.time ?: 0)
-        val diffInMinutos = diffInMillis / (1000 * 60)
-        val diffInHoras = diffInMinutos / 60
-        val diffInDias = diffInHoras / 24
-        
-        when {
-            diffInMinutos < 1 -> "Agora"
-            diffInMinutos < 60 -> "${diffInMinutos}m"
-            diffInHoras < 24 -> "${diffInHoras}h"
-            diffInDias < 7 -> "${diffInDias}d"
-            else -> {
-                val outputFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
-                outputFormat.format(data)
+@Composable
+fun FollowNotificationCard(notification: NotificationItem) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color.Red),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar do usuário
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Avatar",
+                    tint = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.size(24.dp)
+                )
             }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            // Texto da notificação
+            Text(
+                buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = Color.Red, fontWeight = FontWeight.Bold)) {
+                        append(notification.userName)
+                    }
+                    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurface)) {
+                        append(" começou a seguir você.")
+                    }
+                },
+                fontSize = 14.sp,
+                modifier = Modifier.weight(1f)
+            )
         }
-    } catch (e: Exception) {
-        "Recente"
     }
 }
+
+/**
+ * Componente para notificações de comentário - "comentou na sua publicação"
+ */
+@Composable
+fun CommentNotificationCard(notification: NotificationItem) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color.Red),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar do usuário
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Avatar",
+                    tint = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            // Texto da notificação
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    buildAnnotatedString {
+                        withStyle(style = SpanStyle(color = Color.Red, fontWeight = FontWeight.Bold)) {
+                            append(notification.userName)
+                        }
+                        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurface)) {
+                            append(" comentou")
+                        }
+                    },
+                    fontSize = 14.sp
+                )
+                
+                notification.commentText?.let { comment ->
+                    Text(
+                        text = "\"$comment\"",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            // Miniatura da publicação
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant)
+            )
+        }
+    }
+}
+
+// =================================================================================
+// 3. PREVIEWS
+// =================================================================================
 
 @Preview(name = "Light Mode", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO)
 @Composable
@@ -338,5 +430,65 @@ fun NotificacoesScreenPreview() {
 fun NotificacoesScreenDarkPreview() {
     MobileGYMBUDDYTheme(darkTheme = true) {
         NotificacoesScreen(navController = rememberNavController())
+    }
+}
+
+@Preview(name = "Like Notification Light", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO)
+@Composable
+fun LikeNotificationLightPreview() {
+    MobileGYMBUDDYTheme(darkTheme = false) {
+        LikeNotificationCard(
+            NotificationItem(1, NotificationType.LIKE, "mailton_jose", "https://example.com/post1.jpg")
+        )
+    }
+}
+
+@Preview(name = "Like Notification Dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun LikeNotificationDarkPreview() {
+    MobileGYMBUDDYTheme(darkTheme = true) {
+        LikeNotificationCard(
+            NotificationItem(1, NotificationType.LIKE, "mailton_jose", "https://example.com/post1.jpg")
+        )
+    }
+}
+
+@Preview(name = "Follow Notification Light", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO)
+@Composable
+fun FollowNotificationLightPreview() {
+    MobileGYMBUDDYTheme(darkTheme = false) {
+        FollowNotificationCard(
+            NotificationItem(2, NotificationType.FOLLOW, "mailton_jose")
+        )
+    }
+}
+
+@Preview(name = "Follow Notification Dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun FollowNotificationDarkPreview() {
+    MobileGYMBUDDYTheme(darkTheme = true) {
+        FollowNotificationCard(
+            NotificationItem(2, NotificationType.FOLLOW, "mailton_jose")
+        )
+    }
+}
+
+@Preview(name = "Comment Notification Light", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO)
+@Composable
+fun CommentNotificationLightPreview() {
+    MobileGYMBUDDYTheme(darkTheme = false) {
+        CommentNotificationCard(
+            NotificationItem(3, NotificationType.COMMENT, "mailton_jose", "https://example.com/post2.jpg", "parabéns, continue assim que você alc...")
+        )
+    }
+}
+
+@Preview(name = "Comment Notification Dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun CommentNotificationDarkPreview() {
+    MobileGYMBUDDYTheme(darkTheme = true) {
+        CommentNotificationCard(
+            NotificationItem(3, NotificationType.COMMENT, "mailton_jose", "https://example.com/post2.jpg", "parabéns, continue assim que você alc...")
+        )
     }
 }

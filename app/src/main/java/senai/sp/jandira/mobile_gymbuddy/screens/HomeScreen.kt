@@ -312,8 +312,8 @@ fun HomeScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { /* Ação de notificação */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.notifications_description))
+                    IconButton(onClick = { navController.navigate("notifications") }) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Notificações")
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(

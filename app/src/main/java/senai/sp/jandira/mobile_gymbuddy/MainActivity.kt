@@ -26,6 +26,7 @@ import kotlinx.coroutines.delay
 import senai.sp.jandira.mobile_gymbuddy.screens.HomeScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.ImcScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.LoginScreen
+import senai.sp.jandira.mobile_gymbuddy.screens.NotificacoesScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.PasswordRecoveryScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.PublishingScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.RegistrationScreen
@@ -90,6 +91,10 @@ class MainActivity : ComponentActivity() {
                             
                             composable("publishing") {
                                 PublishingScreen(navController = navController)
+                            }
+                            
+                            composable("notifications") {
+                                NotificacoesScreen(navController = navController)
                             }
                         }
                     }
