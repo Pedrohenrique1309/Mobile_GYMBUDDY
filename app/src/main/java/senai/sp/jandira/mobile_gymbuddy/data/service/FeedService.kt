@@ -14,14 +14,16 @@ interface FeedService {
      * Busca o feed otimizado de publicações
      * Consome a view que já traz os dados JOINados (publicação + usuário)
      */
-    @GET("v1/gymbuddy/feed")
+    // Backend disponibiliza a view via /v1/gymbuddy/view/feed
+    @GET("v1/gymbuddy/view/feed")
     suspend fun getFeedPublicacoes(): Response<FeedPublicacaoResponse>
     
     /**
      * Busca publicações por localização
      * Aproveita a view otimizada com filtro de localização
      */
-    @GET("v1/gymbuddy/feed/localizacao/{localizacao}")
+    // Filtragem por localizacao não implementada no backend; mantida assinatura para futuro suporte
+    @GET("v1/gymbuddy/view/feed/localizacao/{localizacao}")
     suspend fun getFeedPorLocalizacao(
         @retrofit2.http.Path("localizacao") localizacao: String
     ): Response<FeedPublicacaoResponse>

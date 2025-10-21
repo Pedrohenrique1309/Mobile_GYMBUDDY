@@ -60,6 +60,14 @@ data class NotificacaoResponse(
 )
 
 /**
+ * Modelo para retornar a contagem de notificações não lidas
+ */
+data class ContagemNotificacoes(
+    @SerializedName("nao_lidas")
+    val naoLidas: Int
+)
+
+/**
  * Enum para os tipos de notificação disponíveis
  */
 enum class TipoNotificacao(val valor: String) {

@@ -14,7 +14,7 @@ import retrofit2.http.Headers
 interface UsuarioService {
     @Headers("Content-Type: application/json")
     @POST("v1/gymbuddy/usuario")
-    suspend fun cadastrarUsuario(@Body usuario: Usuario): Response<Void>
+    suspend fun cadastrarUsuario(@Body usuario: Usuario): Response<UsuarioCreateResponse>
     
     @Headers("Content-Type: application/json")
     @POST("v1/gymbuddy/usuario")

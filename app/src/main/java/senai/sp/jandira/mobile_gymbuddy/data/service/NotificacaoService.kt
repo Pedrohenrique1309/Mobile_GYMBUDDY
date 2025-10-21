@@ -14,9 +14,9 @@ interface NotificacaoService {
      * Busca todas as notificações de um usuário
      * Consome a view vw_notificacoes_detalhadas
      */
-    @GET("v1/gymbuddy/notificacoes/usuario/{idUsuario}")
+    @GET("v1/gymbuddy/notificacao/usuario/{idUsuario}")
     suspend fun getNotificacoesUsuario(
-        @Path("idUsuario") idUsuario: Int
+        @retrofit2.http.Path("idUsuario") idUsuario: Int
     ): Response<NotificacaoResponse>
     
     /**
@@ -28,32 +28,35 @@ interface NotificacaoService {
     /**
      * Busca apenas notificações não lidas de um usuário
      */
-    @GET("v1/gymbuddy/notificacoes/usuario/{idUsuario}/nao-lidas")
+    // Endpoint para notificações não lidas não existe no backend atual.
+    // Mantemos a assinatura para compatibilidade futura, mas o endpoint deve ser implementado no backend se necessário.
+    @GET("v1/gymbuddy/notificacao/usuario/{idUsuario}/nao-lidas")
     suspend fun getNotificacoesNaoLidas(
-        @Path("idUsuario") idUsuario: Int
+        @retrofit2.http.Path("idUsuario") idUsuario: Int
     ): Response<NotificacaoResponse>
     
     /**
      * Marca uma notificação como lida
      */
-    @PATCH("v1/gymbuddy/notificacoes/{idNotificacao}/marcar-lida")
+    // Marcar como lida ainda não implementado no backend. Endpoint ajustado para path compatível quando adicionado.
+    @PATCH("v1/gymbuddy/notificacao/{idNotificacao}/marcar-lida")
     suspend fun marcarComoLida(
-        @Path("idNotificacao") idNotificacao: Int
+        @retrofit2.http.Path("idNotificacao") idNotificacao: Int
     ): Response<Unit>
     
     /**
      * Marca todas as notificações de um usuário como lidas
      */
-    @PATCH("v1/gymbuddy/notificacoes/usuario/{idUsuario}/marcar-todas-lidas")
+    @PATCH("v1/gymbuddy/notificacao/usuario/{idUsuario}/marcar-todas-lidas")
     suspend fun marcarTodasComoLidas(
-        @Path("idUsuario") idUsuario: Int
+        @retrofit2.http.Path("idUsuario") idUsuario: Int
     ): Response<Unit>
     
     /**
      * Conta o número de notificações não lidas
      */
-    @GET("v1/gymbuddy/notificacoes/usuario/{idUsuario}/count-nao-lidas")
+    @GET("v1/gymbuddy/notificacao/usuario/{idUsuario}/count-nao-lidas")
     suspend fun contarNotificacoesNaoLidas(
-        @Path("idUsuario") idUsuario: Int
-    ): Response<Map<String, Int>>
+        @retrofit2.http.Path("idUsuario") idUsuario: Int
+    ): Response<senai.sp.jandira.mobile_gymbuddy.data.model.ContagemNotificacoes>
 }

@@ -16,7 +16,7 @@ data class Publicacao(
     val dataPublicacao: String,
     
     @SerializedName("localizacao")
-    val localizacao: String,
+    val localizacao: String?,
     
     @SerializedName("curtidas_count")
     val curtidasCount: Int,

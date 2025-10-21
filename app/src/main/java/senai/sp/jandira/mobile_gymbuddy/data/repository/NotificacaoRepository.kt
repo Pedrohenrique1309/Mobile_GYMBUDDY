@@ -108,7 +108,8 @@ class NotificacaoRepository {
         return try {
             val response = notificacaoService.contarNotificacoesNaoLidas(idUsuario)
             if (response.isSuccessful) {
-                response.body()?.get("count") ?: 0
+                // agora o endpoint retorna um objeto ContagemNotificacoes com campo `nao_lidas`
+                response.body()?.naoLidas ?: 0
             } else {
                 0
             }
