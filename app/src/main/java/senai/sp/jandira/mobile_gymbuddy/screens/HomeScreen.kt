@@ -51,7 +51,7 @@ import java.util.*
 data class Comment(
     val id: Int,
     val userName: String,
-    val userProfileImageUrl: String?, // URL da imagem do usuário
+    val userProfileImageUrl: String?,
     val text: String,
     val initialLikes: Int,
     val isInitiallyLiked: Boolean
