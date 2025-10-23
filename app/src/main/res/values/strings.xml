@@ -96,8 +96,8 @@
     <string name="user_not_found">Usuário não encontrado</string>
     <string name="profile_load_error">Erro ao carregar perfil: %1$d</string>
     <string name="connection_error">Erro de conexão: %1$s</string>
-    <string name="username_label">Nome de usuário: </string>
-    <string name="nickname_label">Nickname: </string>
+    <string name="username_label">Nome: </string>
+    <string name="nickname_label">Nome de usuário: </string>
     <string name="description_label_profile">Descrição:</string>
     <string name="no_description">Nenhuma descrição fornecida</string>
     <string name="imc_label">IMC: </string>
@@ -108,8 +108,21 @@
     <string name="notifications_badge_99">59+</string>
     <string name="profile_badge_3">3</string>
     
+    <!-- Edit Profile Screen -->
+    <string name="edit_profile_title">SEU PERFIL</string>
+    <string name="username_field_label">Nome de usuário:</string>
+    <string name="description_field_label">Descrição:</string>
+    <string name="description_edit_placeholder">Escreva uma descrição...</string>
+    <string name="email_field_label">Email:</string>
+    <string name="location_field_label">Localização:</string>
+    <string name="change_password_button">Alterar Senha</string>
+    <string name="confirm_edit_button">Confirmar Edição</string>
+    <string name="select_profile_photo">Selecionar foto de perfil</string>
+    <string name="close_photo_picker">Fechar seletor de foto</string>
+    
     <!-- Content Descriptions - Edit Profile -->
     <string name="profile_photo">Foto de perfil</string>
+    <string name="camera_edit_icon">Editar foto</string>
     <string name="error_icon">Erro</string>
     <string name="no_posts_icon">Sem publicações</string>
     <string name="user_post">Publicação do usuário</string>

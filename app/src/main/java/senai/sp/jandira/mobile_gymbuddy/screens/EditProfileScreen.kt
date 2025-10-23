@@ -1,17 +1,19 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
 import android.content.res.Configuration
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -24,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,10 +37,10 @@ import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.*
 import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioDetalhes
-import senai.sp.jandira.mobile_gymbuddy.data.model.Publicacao
 import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,25 +49,65 @@ fun EditProfileScreen(
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val logoRes = if (isDarkTheme) R.drawable.logo_escuro else R.drawable.logo_claro
-    var selectedItem by remember { mutableStateOf<Int>(3) } // Perfil tab selected
-    val items = listOf(stringResource(R.string.nav_home), stringResource(R.string.nav_workouts), stringResource(R.string.nav_achievements), stringResource(R.string.nav_profile))
+    
+    // Estados para os campos de edição
+    var nomeUsuario by remember { mutableStateOf("") }
+    var descricao by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var localizacao by remember { mutableStateOf("") }
+    
+    // Estados para seleção de foto
+    var showImagePickerSheet by remember { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    val sheetState = rememberModalBottomSheetState()
     
     // Estados para carregar dados do usuário
     val context = LocalContext.current
+    
+    // Função para filtrar apenas letras e espaços
+    fun filterOnlyLetters(input: String): String {
+        return input.filter { char ->
+            char.isLetter() || char.isWhitespace()
+        }
+    }
+    
+    // Função para criar arquivo de imagem temporário
+    fun createImageFile(): File {
+        val timeStamp = System.currentTimeMillis()
+        val imageFileName = "JPEG_${timeStamp}_"
+        val storageDir = context.getExternalFilesDir(null)
+        return File.createTempFile(imageFileName, ".jpg", storageDir)
+    }
+    
+    // Launcher para câmera
+    val cameraPhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            selectedImageUri = photoUri
+        }
+        showImagePickerSheet = false
+    }
+    
+    // Launcher para galeria
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        selectedImageUri = uri
+        showImagePickerSheet = false
+    }
     val coroutineScope = rememberCoroutineScope()
     var usuarioDetalhes by remember { mutableStateOf<UsuarioDetalhes?>(null) }
-    var userPublicacoes by remember { mutableStateOf<List<Publicacao>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
-    // Carregar dados do usuário
+    // Carregar dados do usuário para preencher os campos
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             try {
                 val userId = UserPreferences.getUserId(context)
                 val usuarioService = RetrofitFactory.getUsuarioService()
-                
-                android.util.Log.d("EditProfileScreen", "Carregando dados do usuário: $userId")
                 
                 val userResponse = usuarioService.buscarUsuarioPorId(userId)
                 
@@ -72,36 +115,19 @@ fun EditProfileScreen(
                     val apiResponse = userResponse.body()!!
                     if (apiResponse.status && apiResponse.usuario.isNotEmpty()) {
                         usuarioDetalhes = apiResponse.usuario[0]
-                        android.util.Log.d("EditProfileScreen", "✅ Dados do usuário carregados: ${usuarioDetalhes?.nome}")
-                        
-                        // Carregar publicações do usuário
-                        val publicacaoService = RetrofitFactory.getPublicacaoService()
-                        val publicacoesResponse = publicacaoService.getPublicacoes()
-                        
-                        if (publicacoesResponse.isSuccessful && publicacoesResponse.body() != null) {
-                            val publicacoesApiResponse = publicacoesResponse.body()!!
-                            if (publicacoesApiResponse.status) {
-                                // Filtrar apenas publicações do usuário logado
-                                val publicacoesDoUsuario = publicacoesApiResponse.publicacoes.filter { publicacao: Publicacao ->
-                                    publicacao.idUser == userId
-                                }
-                                userPublicacoes = publicacoesDoUsuario
-                                android.util.Log.d("EditProfileScreen", "✅ ${publicacoesDoUsuario.size} publicações carregadas")
-                            }
-                        } else {
-                            android.util.Log.w("EditProfileScreen", "⚠️ Erro ao carregar publicações: ${publicacoesResponse.code()}")
-                        }
+                        // Preencher os campos com os dados do usuário
+                        nomeUsuario = usuarioDetalhes!!.nome
+                        descricao = usuarioDetalhes!!.descricao ?: ""
+                        email = usuarioDetalhes!!.email
+                        localizacao = usuarioDetalhes!!.localizacao ?: ""
                     } else {
                         errorMessage = context.getString(R.string.user_not_found)
-                        android.util.Log.e("EditProfileScreen", "❌ Usuário não encontrado na resposta")
                     }
                 } else {
                     errorMessage = context.getString(R.string.profile_load_error, userResponse.code())
-                    android.util.Log.e("EditProfileScreen", "❌ Erro na API: ${userResponse.code()}")
                 }
             } catch (e: Exception) {
                 errorMessage = context.getString(R.string.connection_error, e.message ?: "")
-                android.util.Log.e("EditProfileScreen", "❌ Exceção: ${e.message}", e)
             } finally {
                 isLoading = false
             }
@@ -112,28 +138,32 @@ fun EditProfileScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Image(
-                        painter = painterResource(id = logoRes),
-                        contentDescription = stringResource(R.string.logo_gym_buddy_desc),
-                        modifier = Modifier
-                            .height(72.dp)
-                            .wrapContentWidth(),
-                        contentScale = ContentScale.Fit
-                    )
+                    if (isDarkTheme) {
+                        Text(
+                            text = stringResource(R.string.edit_profile_title),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = logoRes),
+                            contentDescription = stringResource(R.string.logo_gym_buddy_desc),
+                            modifier = Modifier
+                                .height(72.dp)
+                                .wrapContentWidth(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 },
-                actions = {
-                    BadgedBox(
-                        badge = {
-                            Badge { Text(stringResource(R.string.notifications_badge_99)) }
-                        }
-                    ) {
+                navigationIcon = {
+                    if (isDarkTheme) {
                         IconButton(
-                            onClick = { navController.navigate("notifications") }
+                            onClick = { navController.popBackStack() }
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Notifications,
-                                contentDescription = stringResource(R.string.notifications_description),
-                                modifier = Modifier.size(28.dp),
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = stringResource(R.string.back_button),
                                 tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
@@ -143,97 +173,32 @@ fun EditProfileScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
-        },
-        bottomBar = {
-            NavigationBar {
-                items.forEachIndexed { index, item ->
-                    NavigationBarItem(
-                        icon = {
-                            // Define a cor baseada no estado de seleção do item
-                            val iconColor = if (selectedItem == index) {
-                                MaterialTheme.colorScheme.secondary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                            
-                            when (item) {
-                                stringResource(R.string.nav_home) -> Icon(
-                                    imageVector = Icons.Filled.Home,
-                                    contentDescription = item,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = iconColor
-                                )
-                                stringResource(R.string.nav_workouts) -> Icon(
-                                    imageVector = Icons.Default.FitnessCenter,
-                                    contentDescription = item,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = iconColor
-                                )
-                                stringResource(R.string.nav_achievements) -> Icon(
-                                    imageVector = Icons.Default.SmartToy,
-                                    contentDescription = item,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = iconColor
-                                )
-                                stringResource(R.string.nav_profile) -> {
-                                    BadgedBox(
-                                        badge = {
-                                            Badge { Text(stringResource(R.string.profile_badge_3)) }
-                                        }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Person,
-                                            contentDescription = "Perfil com notificação",
-                                            modifier = Modifier.size(28.dp),
-                                            tint = iconColor
-                                        )
-                                    }
-                                }
-                            }
-                        },
-                        selected = selectedItem == index,
-                        onClick = { 
-                            selectedItem = index
-                            when (index) {
-                                0 -> navController.navigate("home")
-                                1 -> { /* Treinos */ }
-                                2 -> { /* Conquistas */ }
-                                3 -> { /* Já está na tela de perfil */ }
-                            }
-                        }
-                    )
-                }
-            }
         }
-    ) { innerPadding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background),
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Profile Section
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (isLoading) {
-                    // Loading State
+            if (isLoading) {
+                // Loading State
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
                         color = MaterialTheme.colorScheme.secondary
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.loading_profile),
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                } else if (errorMessage != null) {
-                    // Error State
+                }
+            } else if (errorMessage != null) {
+                // Error State
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Icon(
                         imageVector = Icons.Default.Error,
                         contentDescription = stringResource(R.string.error_icon),
@@ -247,10 +212,13 @@ fun EditProfileScreen(
                         color = MaterialTheme.colorScheme.error,
                         textAlign = TextAlign.Center
                     )
-                } else if (usuarioDetalhes != null) {
-                    // Success State - Dados reais do usuário
-                    
-                    // Profile Picture
+                }
+            } else {
+                // Profile Photo Section
+                Box(
+                    contentAlignment = Alignment.BottomEnd,
+                    modifier = Modifier.clickable { showImagePickerSheet = true }
+                ) {
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -258,14 +226,14 @@ fun EditProfileScreen(
                             .background(Color.Gray),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Se o usuário tem foto, carregar com AsyncImage, senão mostrar ícone
-                        if (!usuarioDetalhes!!.foto.isNullOrEmpty()) {
-                            // TODO: Implementar AsyncImage quando tiver fotos reais
-                            Icon(
-                                imageVector = Icons.Default.Person,
+                        if (selectedImageUri != null) {
+                            coil.compose.AsyncImage(
+                                model = selectedImageUri,
                                 contentDescription = stringResource(R.string.profile_photo),
-                                modifier = Modifier.size(60.dp),
-                                tint = Color.White
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
                             )
                         } else {
                             Icon(
@@ -277,221 +245,339 @@ fun EditProfileScreen(
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // User Name
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+                    // Camera Icon
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondary),
+                        contentAlignment = Alignment.Center
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = stringResource(R.string.camera_edit_icon),
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSecondary
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // Form Fields
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Nome de usuário
+                    Column {
                         Text(
                             text = stringResource(R.string.username_label),
                             fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = usuarioDetalhes!!.nome,
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Normal
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Nickname
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(R.string.nickname_label),
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "@${usuarioDetalhes!!.nickname}",
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Normal
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Description
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = stringResource(R.string.description_label_profile),
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = usuarioDetalhes!!.descricao ?: stringResource(R.string.no_description),
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Normal,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                    
-                    // IMC (se disponível)
-                    if (usuarioDetalhes!!.imc != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(R.string.imc_label),
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.secondary,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = String.format("%.1f", usuarioDetalhes!!.imc),
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                fontWeight = FontWeight.Normal
-                            )
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Action Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    // Edit Profile Button
-                    Button(
-                        onClick = { /* TODO: Implementar edição de perfil */ },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.onSecondary
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.edit_profile_button),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.width(16.dp))
-                    
-                    // New Post Button
-                    Button(
-                        onClick = { navController.navigate("publishing") },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.onSecondary
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.new_post_button),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-            
-            // Posts Grid - Dados reais das publicações
-            if (!isLoading && errorMessage == null) {
-                if (userPublicacoes.isNotEmpty()) {
-                    // Mostrar grade de publicações
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        items(userPublicacoes) { publicacao ->
-                            Box(
-                                modifier = Modifier
-                                    .aspectRatio(1f)
-                                    .background(
-                                        color = Color.LightGray,
-                                        shape = RoundedCornerShape(4.dp)
-                                    )
-                            ) {
-                                // Carregar imagem real da publicação
-                                if (!publicacao.imagem.isNullOrEmpty()) {
-                                    coil.compose.AsyncImage(
-                                        model = publicacao.imagem,
-                                        contentDescription = stringResource(R.string.user_post),
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(4.dp)),
-                                        contentScale = ContentScale.Crop,
-                                        placeholder = painterResource(id = R.drawable.img),
-                                        error = painterResource(id = R.drawable.img)
-                                    )
-                                } else {
-                                    // Fallback para publicações sem imagem
-                                    Image(
-                                        painter = painterResource(id = R.drawable.img),
-                                        contentDescription = stringResource(R.string.post_no_image),
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(4.dp)),
-                                        contentScale = ContentScale.Crop,
-                                        alpha = 0.5f
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Mostrar mensagem quando não há publicações
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = stringResource(R.string.no_posts_icon),
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = stringResource(R.string.no_posts_found),
-                            fontSize = 18.sp,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        OutlinedTextField(
+                            value = nomeUsuario,
+                            onValueChange = { newValue -> 
+                                nomeUsuario = filterOnlyLetters(newValue)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.secondary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                focusedContainerColor = if (isDarkTheme) 
+                                    MaterialTheme.colorScheme.surface 
+                                else 
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = if (isDarkTheme) 
+                                    MaterialTheme.colorScheme.surface 
+                                else 
+                                    MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                    
+                    // Descrição
+                    Column {
                         Text(
-                            text = stringResource(R.string.posts_will_appear),
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                            text = stringResource(R.string.description_field_label),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        OutlinedTextField(
+                            value = descricao,
+                            onValueChange = { descricao = it },
+                            placeholder = {
+                                Text(
+                                    text = stringResource(R.string.description_edit_placeholder),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.secondary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                focusedContainerColor = if (isDarkTheme) 
+                                    MaterialTheme.colorScheme.surface 
+                                else 
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = if (isDarkTheme) 
+                                    MaterialTheme.colorScheme.surface 
+                                else 
+                                    MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            maxLines = 4
+                        )
+                    }
+                    
+                    // Email
+                    Column {
+                        Text(
+                            text = stringResource(R.string.email_field_label),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.secondary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                focusedContainerColor = if (isDarkTheme) 
+                                    MaterialTheme.colorScheme.surface 
+                                else 
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = if (isDarkTheme) 
+                                    MaterialTheme.colorScheme.surface 
+                                else 
+                                    MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                    
+                    // Localização
+                    Column {
+                        Text(
+                            text = stringResource(R.string.location_field_label),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        OutlinedTextField(
+                            value = localizacao,
+                            onValueChange = { localizacao = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.secondary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                focusedContainerColor = if (isDarkTheme) 
+                                    MaterialTheme.colorScheme.surface 
+                                else 
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = if (isDarkTheme) 
+                                    MaterialTheme.colorScheme.surface 
+                                else 
+                                    MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(8.dp)
                         )
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // Buttons Section
+                // Confirmar Edição Button
+                Button(
+                    onClick = { 
+                        // TODO: Implementar salvamento das alterações
+                        navController.popBackStack()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.confirm_edit_button),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+    
+    // Bottom Sheet para seleção de foto
+    if (showImagePickerSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showImagePickerSheet = false },
+            sheetState = sheetState,
+            containerColor = if (isDarkTheme) Color(0xFF1A1A1A) else Color.White,
+            dragHandle = null
+        ) {
+            PhotoPickerBottomSheetContent(
+                onDismiss = { showImagePickerSheet = false },
+                onCameraClick = {
+                    try {
+                        val imageFile = createImageFile()
+                        photoUri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.provider",
+                            imageFile
+                        )
+                        cameraPhotoLauncher.launch(photoUri!!)
+                    } catch (e: Exception) {
+                        showImagePickerSheet = false
+                    }
+                },
+                onGalleryClick = {
+                    galleryLauncher.launch("image/*")
+                },
+                isDarkTheme = isDarkTheme
+            )
+        }
+    }
+}
+
+@Composable
+fun PhotoPickerBottomSheetContent(
+    onDismiss: () -> Unit,
+    onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
+    isDarkTheme: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Header com título e botão fechar
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.select_profile_photo),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDarkTheme) Color.White else Color.Black
+            )
+            
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(R.string.close_photo_picker),
+                    tint = Color.Red,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Grid de opções (apenas FOTO e GALERIA)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            // Opção FOTO
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable { onCameraClick() }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.secondary,
+                            RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PhotoCamera,
+                        contentDescription = stringResource(R.string.camera_icon),
+                        tint = MaterialTheme.colorScheme.onSecondary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.photo_option),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDarkTheme) Color.White else Color.Black
+                )
+            }
+
+            // Opção GALERIA
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable { onGalleryClick() }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.secondary,
+                            RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PhotoLibrary,
+                        contentDescription = stringResource(R.string.gallery_icon),
+                        tint = MaterialTheme.colorScheme.onSecondary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.gallery_option),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDarkTheme) Color.White else Color.Black
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 

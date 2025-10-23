@@ -23,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.delay
+import senai.sp.jandira.mobile_gymbuddy.screens.ProfileScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.EditProfileScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.HomeScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.ImcScreen
@@ -99,6 +100,10 @@ class MainActivity : ComponentActivity() {
                             }
                             
                             composable("editProfile") {
+                                ProfileScreen(navController = navController)
+                            }
+                            
+                            composable("editProfileForm") {
                                 EditProfileScreen(navController = navController)
                             }
                         }
