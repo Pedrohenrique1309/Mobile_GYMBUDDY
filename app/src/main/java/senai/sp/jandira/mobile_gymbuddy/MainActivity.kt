@@ -23,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.delay
+import senai.sp.jandira.mobile_gymbuddy.screens.IAScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.ProfileScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.EditProfileScreen
 import senai.sp.jandira.mobile_gymbuddy.screens.HomeScreen
@@ -73,9 +74,9 @@ class MainActivity : ComponentActivity() {
                             composable(
                                 route = "home?postSuccess={postSuccess}",
                                 arguments = listOf(
-                                    navArgument("postSuccess") { 
+                                    navArgument("postSuccess") {
                                         type = NavType.BoolType
-                                        defaultValue = false 
+                                        defaultValue = false
                                     }
                                 )
                             ) { backStackEntry ->
@@ -90,21 +91,25 @@ class MainActivity : ComponentActivity() {
                             composable("imc") {
                                 ImcScreen(navController = navController)
                             }
-                            
+
                             composable("publishing") {
                                 PublishingScreen(navController = navController)
                             }
-                            
+
                             composable("notifications") {
                                 NotificacoesScreen(navController = navController)
                             }
-                            
+
                             composable("editProfile") {
                                 ProfileScreen(navController = navController)
                             }
-                            
+
                             composable("editProfileForm") {
                                 EditProfileScreen(navController = navController)
+                            }
+
+                            composable("ia") {
+                                IAScreen(navController = navController)
                             }
                         }
                     }

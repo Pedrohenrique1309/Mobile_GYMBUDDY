@@ -1,12 +1,10 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
-import android.content.Context
 import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,26 +25,32 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.data.model.*
-import senai.sp.jandira.mobile_gymbuddy.data.repository.NotificacaoRepository
 import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
+import senai.sp.jandira.mobile_gymbuddy.data.repository.NotificacaoRepository
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
 import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
+import senai.sp.jandira.mobile_gymbuddy.data.model.Publicacao
+import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioApi
+import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioRequest
+import senai.sp.jandira.mobile_gymbuddy.data.model.CurtidaRequest
+import android.content.Context
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.withStyle
+import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
+import coil.compose.AsyncImage
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -787,7 +791,7 @@ fun PostItem(
                 modifier = Modifier.clickable { onCommentClick() }
             ) {
                 Icon(
-                    imageVector = Icons.Default.ChatBubble,
+                    imageVector = Icons.Outlined.ChatBubbleOutline,
                     contentDescription = "Comentar",
                     modifier = Modifier.size(28.dp),
                     tint = MaterialTheme.colorScheme.onBackground
