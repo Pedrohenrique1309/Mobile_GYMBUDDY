@@ -3,7 +3,10 @@ package senai.sp.jandira.mobile_gymbuddy.data.repository
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import retrofit2.Response
 import senai.sp.jandira.mobile_gymbuddy.data.model.Notificacao
+import senai.sp.jandira.mobile_gymbuddy.data.model.NotificacaoResponse
+import senai.sp.jandira.mobile_gymbuddy.data.model.ContagemNotificacoes
 import senai.sp.jandira.mobile_gymbuddy.data.service.NotificacaoService
 import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 
@@ -12,7 +15,7 @@ import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
  */
 class NotificacaoRepository {
     
-    private val notificacaoService = RetrofitFactory.getNotificacaoService()
+    private val notificacaoService: NotificacaoService = RetrofitFactory.getNotificacaoService()
     
     /**
      * Busca todas as notificações de um usuário específico
