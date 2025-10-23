@@ -393,7 +393,18 @@ fun NotificacoesScreen(navController: NavController) {
                             onNotificationClick = { 
                                 // Marcar como lida e navegar se necessário
                                 coroutineScope.launch {
-                                    notificacaoRepository.marcarComoLida(notificacao.id)
+                                    try {
+                                        val sucesso = notificacaoRepository.marcarComoLida(notificacao.id)
+                                        if (sucesso) {
+                                            android.util.Log.d("NotificacoesScreen", "✅ Notificação ${notificacao.id} marcada como lida")
+                                            // Recarregar para atualizar a lista
+                                            recarregarNotificacoes()
+                                        } else {
+                                            android.util.Log.w("NotificacoesScreen", "⚠️ Falha ao marcar notificação como lida")
+                                        }
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("NotificacoesScreen", "❌ Erro ao marcar como lida", e)
+                                    }
                                 }
                             }
                         )

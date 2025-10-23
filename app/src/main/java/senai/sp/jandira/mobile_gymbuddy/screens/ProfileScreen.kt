@@ -35,9 +35,66 @@ import senai.sp.jandira.mobile_gymbuddy.ui.theme.*
 import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioDetalhes
 import senai.sp.jandira.mobile_gymbuddy.data.model.Publicacao
+import senai.sp.jandira.mobile_gymbuddy.data.repository.NotificacaoRepository
 import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
+
+// =================================================================================
+// COMPOSABLES PARA BADGE DE NOTIFICAÇÕES
+// =================================================================================
+
+@Composable
+fun NotificationBadgeProfile(
+    count: Int,
+    modifier: Modifier = Modifier
+) {
+    if (count > 0) {
+        Box(
+            modifier = modifier
+                .size(20.dp)
+                .background(
+                    color = secondaryLight,
+                    shape = CircleShape
+                )
+                .clip(CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (count > 99) "99+" else count.toString(),
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun NotificationIconWithBadgeProfile(
+    badgeCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier) {
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = "Notificações",
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        
+        if (badgeCount > 0) {
+            NotificationBadgeProfile(
+                count = badgeCount,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-4).dp, y = 4.dp)
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +115,10 @@ fun ProfileScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
     
+    // Estado para notificações não lidas
+    var notificacoesNaoLidas by remember { mutableStateOf(0) }
+    val notificacaoRepository = remember { NotificacaoRepository() }
+    
     // Função para recarregar dados
     fun recarregarDados() {
         refreshTrigger++
@@ -69,6 +130,22 @@ fun ProfileScreen(
             try {
                 val userId = UserPreferences.getUserId(context)
                 val usuarioService = RetrofitFactory.getUsuarioService()
+                
+                // Buscar notificações não lidas
+                launch {
+                    try {
+                        notificacaoRepository.getTodasNotificacoes().collect { notifs ->
+                            val naoLidas = notifs.filter { 
+                                it.idUsuarioDestino == userId && !it.isLida 
+                            }.size
+                            notificacoesNaoLidas = naoLidas
+                            android.util.Log.d("ProfileScreen", "📩 Notificações não lidas: $naoLidas")
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("ProfileScreen", "Erro ao buscar notificações", e)
+                        notificacoesNaoLidas = 0
+                    }
+                }
                 
                 android.util.Log.d("ProfileScreen", "Carregando dados do usuário: $userId")
                 
@@ -153,22 +230,10 @@ fun ProfileScreen(
                     )
                 },
                 actions = {
-                    BadgedBox(
-                        badge = {
-                            Badge { Text(stringResource(R.string.notifications_badge_99)) }
-                        }
-                    ) {
-                        IconButton(
-                            onClick = { navController.navigate("notifications") }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Notifications,
-                                contentDescription = stringResource(R.string.notifications_description),
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                    }
+                    NotificationIconWithBadgeProfile(
+                        badgeCount = notificacoesNaoLidas,
+                        onClick = { navController.navigate("notifications") }
+                    )
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background

@@ -1,47 +1,52 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
+import android.content.Context
 import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import senai.sp.jandira.mobile_gymbuddy.R
-import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
-import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
-import senai.sp.jandira.mobile_gymbuddy.data.model.Publicacao
-import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioApi
-import senai.sp.jandira.mobile_gymbuddy.data.model.ComentarioRequest
-import senai.sp.jandira.mobile_gymbuddy.data.model.CurtidaRequest
-import kotlinx.coroutines.launch
-import android.content.Context
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.withStyle
-import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
+import senai.sp.jandira.mobile_gymbuddy.R
+import senai.sp.jandira.mobile_gymbuddy.data.model.*
+import senai.sp.jandira.mobile_gymbuddy.data.repository.NotificacaoRepository
+import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
+import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
+import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
+import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -72,6 +77,62 @@ data class Post(
     // Propriedades de compatibilidade
     val initialLikes: Int get() = currentLikes
     val isInitiallyLiked: Boolean get() = isCurrentlyLiked
+}
+
+// =================================================================================
+// 1.1. COMPOSABLE PARA BADGE DE NOTIFICAÇÕES
+// =================================================================================
+
+@Composable
+fun NotificationBadge(
+    count: Int,
+    modifier: Modifier = Modifier
+) {
+    if (count > 0) {
+        Box(
+            modifier = modifier
+                .size(20.dp)
+                .background(
+                    color = secondaryLight,
+                    shape = CircleShape
+                )
+                .clip(CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (count > 99) "99+" else count.toString(),
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun NotificationIconWithBadge(
+    badgeCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier) {
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = "Notificações",
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        
+        if (badgeCount > 0) {
+            NotificationBadge(
+                count = badgeCount,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-4).dp, y = 4.dp)
+            )
+        }
+    }
 }
 
 // =================================================================================
@@ -151,6 +212,10 @@ fun HomeScreen(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     
+    // Estado para notificações não lidas
+    var notificacoesNaoLidas by remember { mutableStateOf(0) }
+    val notificacaoRepository = remember { NotificacaoRepository() }
+    
     // Esconder mensagem de sucesso após 4 segundos
     LaunchedEffect(postSuccess) {
         if (postSuccess) {
@@ -175,9 +240,26 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             try {
-                // Buscar publicações e curtidas
+                // Buscar publicações, curtidas e notificações não lidas
                 val publicacaoService = RetrofitFactory.getPublicacaoService()
                 val curtidaService = RetrofitFactory.getCurtidaService()
+                val userId = UserPreferences.getUserId(context)
+                
+                // Buscar contagem de notificações não lidas
+                launch {
+                    try {
+                        notificacaoRepository.getTodasNotificacoes().collect { notifs ->
+                            val naoLidas = notifs.filter { 
+                                it.idUsuarioDestino == userId && !it.isLida 
+                            }.size
+                            notificacoesNaoLidas = naoLidas
+                            android.util.Log.d("HomeScreen", "📩 Notificações não lidas: $naoLidas")
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("HomeScreen", "Erro ao buscar notificações", e)
+                        notificacoesNaoLidas = 0
+                    }
+                }
                 
                 android.util.Log.d("HomeScreen", "=== INICIANDO CARREGAMENTO ===")
                 
@@ -289,9 +371,10 @@ fun HomeScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { navController.navigate("notifications") }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notificações")
-                    }
+                    NotificationIconWithBadge(
+                        badgeCount = notificacoesNaoLidas,
+                        onClick = { navController.navigate("notifications") }
+                    )
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
@@ -704,7 +787,7 @@ fun PostItem(
                 modifier = Modifier.clickable { onCommentClick() }
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.ChatBubbleOutline,
+                    imageVector = Icons.Default.ChatBubble,
                     contentDescription = "Comentar",
                     modifier = Modifier.size(28.dp),
                     tint = MaterialTheme.colorScheme.onBackground
