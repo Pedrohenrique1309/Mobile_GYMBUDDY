@@ -109,7 +109,7 @@
     <string name="profile_badge_3">3</string>
     
     <!-- Edit Profile Screen -->
-    <string name="edit_profile_title">SEU PERFIL</string>
+    <string name="edit_profile_title">EDITAR PERFIL</string>
     <string name="username_field_label">Nome de usuário:</string>
     <string name="description_field_label">Descrição:</string>
     <string name="description_edit_placeholder">Escreva uma descrição...</string>

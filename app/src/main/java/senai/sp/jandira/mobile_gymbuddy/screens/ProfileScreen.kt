@@ -81,12 +81,27 @@ fun ProfileScreen(
                         if (publicacoesResponse.isSuccessful && publicacoesResponse.body() != null) {
                             val publicacoesApiResponse = publicacoesResponse.body()!!
                             if (publicacoesApiResponse.status) {
+                                android.util.Log.d("ProfileScreen", "🔍 Total de publicações recebidas: ${publicacoesApiResponse.publicacoes.size}")
+                                android.util.Log.d("ProfileScreen", "🆔 ID do usuário logado: $userId")
+                                
+                                // Log das publicações para debug
+                                publicacoesApiResponse.publicacoes.forEachIndexed { index, pub ->
+                                    val realUserId = pub.user.firstOrNull()?.id ?: 0
+                                    android.util.Log.d("ProfileScreen", "📋 Pub[$index]: ID=${pub.id}, UserID_fromArray=$realUserId, UserID_fromField=${pub.idUser}, Desc=${pub.descricao}")
+                                }
+                                
                                 // Filtrar apenas publicações do usuário logado
                                 val publicacoesDoUsuario = publicacoesApiResponse.publicacoes.filter { publicacao: Publicacao ->
-                                    publicacao.idUser == userId
+                                    // Usar o ID do usuário do array user, já que id_user não está vindo da API
+                                    val publicacaoUserId = publicacao.user.firstOrNull()?.id ?: 0
+                                    val match = publicacaoUserId == userId
+                                    android.util.Log.d("ProfileScreen", "🔍 Comparando: $publicacaoUserId == $userId = $match")
+                                    match
                                 }
                                 userPublicacoes = publicacoesDoUsuario
-                                android.util.Log.d("ProfileScreen", "✅ ${publicacoesDoUsuario.size} publicações carregadas")
+                                android.util.Log.d("ProfileScreen", "✅ ${publicacoesDoUsuario.size} publicações carregadas para o usuário $userId")
+                            } else {
+                                android.util.Log.e("ProfileScreen", "❌ Status falso na resposta das publicações")
                             }
                         } else {
                             android.util.Log.w("ProfileScreen", "⚠️ Erro ao carregar publicações: ${publicacoesResponse.code()}")
@@ -411,6 +426,7 @@ fun ProfileScreen(
             
             // Posts Grid - Dados reais das publicações
             if (!isLoading && errorMessage == null) {
+                android.util.Log.d("ProfileScreen", "🎯 Verificando publicações: ${userPublicacoes.size} publicações encontradas")
                 if (userPublicacoes.isNotEmpty()) {
                     // Mostrar grade de publicações
                     LazyVerticalGrid(
