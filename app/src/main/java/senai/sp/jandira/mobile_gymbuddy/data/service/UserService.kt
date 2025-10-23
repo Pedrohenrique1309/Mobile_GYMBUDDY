@@ -4,10 +4,13 @@ import senai.sp.jandira.mobile_gymbuddy.data.model.Usuario
 import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioCompleteRequest
 import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioCreateResponse
 import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioPerfilResponse
+import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioUpdateRequest
+import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioUpdateResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 import senai.sp.jandira.mobile_gymbuddy.data.model.LoginResponse
@@ -32,4 +35,11 @@ interface UsuarioService {
     suspend fun buscarUsuarioPorId(
         @Path("id") id: Int
     ): Response<UsuarioPerfilResponse>
+    
+    @Headers("Content-Type: application/json")
+    @PUT("v1/gymbuddy/usuario/{id}")
+    suspend fun atualizarUsuario(
+        @Path("id") id: Int,
+        @Body usuarioUpdate: UsuarioUpdateRequest
+    ): Response<UsuarioUpdateResponse>
 }

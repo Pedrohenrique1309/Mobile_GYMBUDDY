@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,7 +38,9 @@ import senai.sp.jandira.mobile_gymbuddy.R
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.*
 import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioDetalhes
+import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioUpdateRequest
 import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
+import senai.sp.jandira.mobile_gymbuddy.utils.AzureBlobUploader
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import java.io.File
@@ -101,6 +104,106 @@ fun EditProfileScreen(
     var usuarioDetalhes by remember { mutableStateOf<UsuarioDetalhes?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    
+    // Estados para controle da atualização
+    var isUpdating by remember { mutableStateOf(false) }
+    var updateSuccess by remember { mutableStateOf(false) }
+    var updateError by remember { mutableStateOf<String?>(null) }
+    
+    // Função para atualizar perfil
+    fun atualizarPerfil() {
+        if (nomeUsuario.isBlank() || email.isBlank()) {
+            updateError = "Nome e email são obrigatórios"
+            return
+        }
+        
+        coroutineScope.launch {
+            try {
+                isUpdating = true
+                updateError = null
+                
+                val userId = UserPreferences.getUserId(context)
+                val usuarioService = RetrofitFactory.getUsuarioService()
+                
+                // 1. Upload da imagem se uma nova foi selecionada
+                var imageUrl = usuarioDetalhes?.foto // URL atual da foto
+                if (selectedImageUri != null) {
+                    android.util.Log.d("EditProfile", "Fazendo upload da nova foto de perfil...")
+                    val uploadedUrl = AzureBlobUploader.uploadImage(context, selectedImageUri!!)
+                    if (uploadedUrl != null) {
+                        imageUrl = uploadedUrl
+                        android.util.Log.d("EditProfile", "Upload bem-sucedido: $uploadedUrl")
+                    } else {
+                        updateError = "Erro ao fazer upload da imagem"
+                        return@launch
+                    }
+                }
+                
+                // 2. Atualizar dados do usuário
+                val updateRequest = UsuarioUpdateRequest(
+                    nome = nomeUsuario.trim(),
+                    email = email.trim(),
+                    senha = usuarioDetalhes?.senha ?: "123456", // Garantir que não seja vazio
+                    peso = usuarioDetalhes?.peso ?: 0.0, // Garantir valor padrão
+                    altura = usuarioDetalhes?.altura ?: 0.0, // Garantir valor padrão
+                    imc = usuarioDetalhes?.imc ?: 0.0, // Garantir valor padrão
+                    nickname = usuarioDetalhes?.nickname ?: "user",
+                    dataNascimento = usuarioDetalhes?.dataNascimento,
+                    foto = imageUrl ?: "",
+                    descricao = if (descricao.isBlank()) "" else descricao.trim(),
+                    localizacao = if (localizacao.isBlank()) "" else localizacao.trim(),
+                    isBloqueado = usuarioDetalhes?.isBloqueado ?: 0
+                )
+                
+                android.util.Log.d("EditProfile", "Dados sendo enviados:")
+                android.util.Log.d("EditProfile", "Nome: ${updateRequest.nome}")
+                android.util.Log.d("EditProfile", "Email: ${updateRequest.email}")
+                android.util.Log.d("EditProfile", "Senha: [OCULTA]")
+                android.util.Log.d("EditProfile", "Peso: ${updateRequest.peso}")
+                android.util.Log.d("EditProfile", "Altura: ${updateRequest.altura}")
+                android.util.Log.d("EditProfile", "IMC: ${updateRequest.imc}")
+                android.util.Log.d("EditProfile", "Nickname: ${updateRequest.nickname}")
+                android.util.Log.d("EditProfile", "Data Nasc: ${updateRequest.dataNascimento}")
+                android.util.Log.d("EditProfile", "Foto: ${updateRequest.foto}")
+                android.util.Log.d("EditProfile", "Descrição: ${updateRequest.descricao}")
+                android.util.Log.d("EditProfile", "Localização: ${updateRequest.localizacao}")
+                android.util.Log.d("EditProfile", "Bloqueado: ${updateRequest.isBloqueado}")
+                android.util.Log.d("EditProfile", "Atualizando dados do usuário...")
+                val response = usuarioService.atualizarUsuario(userId, updateRequest)
+                
+                if (response.isSuccessful && response.body() != null) {
+                    val updateResponse = response.body()!!
+                    if (updateResponse.statusCode == 200 && updateResponse.item) {
+                        updateSuccess = true
+                        android.util.Log.d("EditProfile", "Perfil atualizado com sucesso!")
+                        
+                        // Atualizar dados salvos no SharedPreferences
+                        UserPreferences.saveUserData(
+                            context = context,
+                            id = userId,
+                            name = nomeUsuario.trim(),
+                            nickname = usuarioDetalhes?.nickname ?: "user",
+                            email = email.trim(),
+                            photoUrl = imageUrl
+                        )
+                        
+                        // Voltar para tela de perfil após 1.5 segundos
+                        kotlinx.coroutines.delay(1500)
+                        navController.popBackStack()
+                    } else {
+                        updateError = updateResponse.message
+                    }
+                } else {
+                    updateError = "Erro ao atualizar perfil: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("EditProfile", "Erro durante atualização", e)
+                updateError = "Erro de conexão: ${e.message}"
+            } finally {
+                isUpdating = false
+            }
+        }
+    }
     
     // Carregar dados do usuário para preencher os campos
     LaunchedEffect(Unit) {
@@ -416,10 +519,8 @@ fun EditProfileScreen(
                 // Buttons Section
                 // Confirmar Edição Button
                 Button(
-                    onClick = { 
-                        // TODO: Implementar salvamento das alterações
-                        navController.popBackStack()
-                    },
+                    onClick = { atualizarPerfil() },
+                    enabled = !isUpdating,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
@@ -429,11 +530,94 @@ fun EditProfileScreen(
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text(
-                        text = stringResource(R.string.confirm_edit_button),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    if (isUpdating) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onSecondary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Salvando...",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = stringResource(R.string.confirm_edit_button),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                
+                // Feedback de sucesso ou erro
+                updateError?.let { error ->
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = "Erro",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+                
+                if (updateSuccess) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Sucesso",
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Perfil atualizado com sucesso!",
+                                color = Color(0xFF4CAF50),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(32.dp))
