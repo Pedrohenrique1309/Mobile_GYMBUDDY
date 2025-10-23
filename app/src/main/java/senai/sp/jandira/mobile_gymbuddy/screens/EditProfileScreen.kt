@@ -15,8 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,6 +63,7 @@ fun EditProfileScreen(
     var showImagePickerSheet by remember { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var photoUpdateTimestamp by remember { mutableStateOf(System.currentTimeMillis()) }
     val sheetState = rememberModalBottomSheetState()
     
     // Estados para carregar dados do usuário
@@ -177,6 +178,15 @@ fun EditProfileScreen(
                         updateSuccess = true
                         android.util.Log.d("EditProfile", "Perfil atualizado com sucesso!")
                         
+                        // Atualizar o estado local com a nova foto
+                        usuarioDetalhes = usuarioDetalhes?.copy(foto = imageUrl)
+                        
+                        // Limpar a imagem selecionada para mostrar a nova foto do perfil
+                        selectedImageUri = null
+                        
+                        // Atualizar timestamp para forçar recomposição da imagem
+                        photoUpdateTimestamp = System.currentTimeMillis()
+                        
                         // Atualizar dados salvos no SharedPreferences
                         UserPreferences.saveUserData(
                             context = context,
@@ -265,7 +275,7 @@ fun EditProfileScreen(
                             onClick = { navController.popBackStack() }
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.back_button),
                                 tint = MaterialTheme.colorScheme.onBackground
                             )
@@ -337,6 +347,16 @@ fun EditProfileScreen(
                                     .fillMaxSize()
                                     .clip(CircleShape),
                                 contentScale = ContentScale.Crop
+                            )
+                        } else if (usuarioDetalhes?.foto?.isNotEmpty() == true) {
+                            coil.compose.AsyncImage(
+                                model = usuarioDetalhes!!.foto + "?t=$photoUpdateTimestamp", // Usa timestamp controlado para evitar cache
+                                contentDescription = stringResource(R.string.profile_photo),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop,
+                                error = painterResource(R.drawable.ic_launcher_foreground)
                             )
                         } else {
                             Icon(
@@ -640,7 +660,7 @@ fun EditProfileScreen(
                         val imageFile = createImageFile()
                         photoUri = androidx.core.content.FileProvider.getUriForFile(
                             context,
-                            "${context.packageName}.provider",
+                            "${context.packageName}.fileprovider",
                             imageFile
                         )
                         cameraPhotoLauncher.launch(photoUri!!)

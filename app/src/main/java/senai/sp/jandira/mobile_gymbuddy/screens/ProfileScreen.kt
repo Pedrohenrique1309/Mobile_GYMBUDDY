@@ -56,9 +56,15 @@ fun ProfileScreen(
     var userPublicacoes by remember { mutableStateOf<List<Publicacao>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var refreshTrigger by remember { mutableStateOf(0) }
+    
+    // Função para recarregar dados
+    fun recarregarDados() {
+        refreshTrigger++
+    }
     
     // Carregar dados do usuário
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshTrigger) {
         coroutineScope.launch {
             try {
                 val userId = UserPreferences.getUserId(context)
@@ -120,6 +126,16 @@ fun ProfileScreen(
             } finally {
                 isLoading = false
             }
+        }
+    }
+    
+    // Detectar quando a tela volta ao foco (para recarregar após edição)
+    LaunchedEffect(navController.currentBackStackEntry) {
+        val currentRoute = navController.currentBackStackEntry?.destination?.route
+        if (currentRoute == "profile") {
+            // Se voltou para a tela de perfil, recarregar dados após um delay
+            kotlinx.coroutines.delay(100)
+            recarregarDados()
         }
     }
 
@@ -275,12 +291,14 @@ fun ProfileScreen(
                     ) {
                         // Se o usuário tem foto, carregar com AsyncImage, senão mostrar ícone
                         if (!usuarioDetalhes!!.foto.isNullOrEmpty()) {
-                            // TODO: Implementar AsyncImage quando tiver fotos reais
-                            Icon(
-                                imageVector = Icons.Default.Person,
+                            coil.compose.AsyncImage(
+                                model = usuarioDetalhes!!.foto + "?t=${System.currentTimeMillis()}", // Cache-busting
                                 contentDescription = stringResource(R.string.profile_photo),
-                                modifier = Modifier.size(60.dp),
-                                tint = Color.White
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop,
+                                error = painterResource(R.drawable.ic_launcher_foreground)
                             )
                         } else {
                             Icon(

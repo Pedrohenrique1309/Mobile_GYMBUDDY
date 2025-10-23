@@ -79,7 +79,7 @@ object AzureBlobUploader {
                     Log.d("AzureUpload", "Upload bem-sucedido! URL: $baseUrl")
                     baseUrl
                 } else {
-                    Log.e("AzureUpload", "Erro no upload: ${response.code} - ${response.body?.string()}")
+                    Log.e("AzureUpload", "Erro no upload: ${response.code} - ${response.body.string()}")
                     null
                 }
             } catch (e: Exception) {

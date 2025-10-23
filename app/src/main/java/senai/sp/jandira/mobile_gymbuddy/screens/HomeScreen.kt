@@ -66,7 +66,7 @@ data class Post(
     val caption: String,
     var currentLikes: Int, // Mutável para atualizações locais
     var isCurrentlyLiked: Boolean, // Mutável para atualizações locais
-    val commentsCount: Int, // Contagem de comentários do banco via trigger
+    var commentsCount: Int, // Contagem de comentários do banco via trigger (mutável para sync local)
     val comments: MutableList<Comment>
 ) {
     // Propriedades de compatibilidade
@@ -175,9 +175,8 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             try {
-                // Buscar publicações, comentários e curtidas
+                // Buscar publicações e curtidas
                 val publicacaoService = RetrofitFactory.getPublicacaoService()
-                val comentarioService = RetrofitFactory.getComentarioService()
                 val curtidaService = RetrofitFactory.getCurtidaService()
                 
                 android.util.Log.d("HomeScreen", "=== INICIANDO CARREGAMENTO ===")
@@ -242,57 +241,17 @@ fun HomeScreen(
                         android.util.Log.d("HomeScreen", "Posts curtidos pelo usuário: $userLikedPosts")
                         android.util.Log.d("HomeScreen", "Contagem de curtidas por post: $curtidasCountMap")
                         
-                        // Contar comentários por publicação individualmente
-                        val commentsCountMap = mutableMapOf<Int, Int>()
-                        
-                        // Para cada publicação, buscar seus comentários
-                        apiResponse.publicacoes.forEach { publicacao ->
-                            try {
-                                val comentariosResponse = comentarioService.getComentarios(publicacao.id)
-                                if (comentariosResponse.isSuccessful && comentariosResponse.body() != null) {
-                                    val comentariosApiResponse = comentariosResponse.body()!!
-                                    if (comentariosApiResponse.status) {
-                                        android.util.Log.d("HomeScreen", "🔍 DEBUG FILTRO - Publicação ${publicacao.id}:")
-                                        android.util.Log.d("HomeScreen", "  📦 Total comentários da API: ${comentariosApiResponse.comentarios.size}")
-                                        
-                                        // Log detalhado ANTES do filtro
-                                        comentariosApiResponse.comentarios.forEachIndexed { index, comentario ->
-                                            val publicacaoDoComentario = if (comentario.publicacao.isNotEmpty()) comentario.publicacao[0].id else "null"
-                                            val pertence = comentario.publicacao.isNotEmpty() && comentario.publicacao[0].id == publicacao.id
-                                            android.util.Log.d("HomeScreen", "  📝 Comentário $index: ID=${comentario.id}, pertence à pub=${publicacaoDoComentario}, desejada=${publicacao.id}")
-                                            android.util.Log.d("HomeScreen", "      Filtrar? ${if (pertence) "✅ SIM" else "❌ NÃO"}")
-                                        }
-                                        
-                                        // FILTRAR usando o ID da publicação do array publicacao
-                                        val comentariosFiltrados = comentariosApiResponse.comentarios.filter { comentario ->
-                                            // Verificar se o comentário pertence a esta publicação usando o array publicacao
-                                            comentario.publicacao.isNotEmpty() && comentario.publicacao[0].id == publicacao.id
-                                        }
-                                        
-                                        val count = comentariosFiltrados.size
-                                        commentsCountMap[publicacao.id] = count
-                                        
-                                        android.util.Log.d("HomeScreen", "  ✅ Resultado: ${count} comentários para publicação ${publicacao.id}")
-                                    }
-                                } else {
-                                    android.util.Log.w("HomeScreen", "Erro ao buscar comentários da publicação ${publicacao.id}")
-                                }
-                            } catch (e: Exception) {
-                                android.util.Log.e("HomeScreen", "Erro ao buscar comentários da publicação ${publicacao.id}: ${e.message}")
-                                commentsCountMap[publicacao.id] = 0
-                            }
-                        }
-                        
-                        android.util.Log.d("HomeScreen", "Mapa final de contagem: $commentsCountMap")
+                        // Usar contagem de comentários direto do banco (mantida por triggers)
+                        android.util.Log.d("HomeScreen", "Usando comentarios_count diretamente das publicações (mantido por triggers)")
                         
                         val mappedPosts = apiResponse.publicacoes.map { publicacao ->
                             val isLiked = userLikedPosts.contains(publicacao.id)
                             val realLikesCount = curtidasCountMap.getOrDefault(publicacao.id, 0)
-                            android.util.Log.d("HomeScreen", "Post ${publicacao.id}: DB_curtidas=${publicacao.curtidasCount}, REAL_curtidas=$realLikesCount, isLiked=$isLiked")
+                            android.util.Log.d("HomeScreen", "Post ${publicacao.id}: DB_curtidas=${publicacao.curtidasCount}, REAL_curtidas=$realLikesCount, COMENTARIOS_COUNT=${publicacao.comentariosCount}, isLiked=$isLiked")
                             
                             mapPublicacaoToPost(
                                 publicacao = publicacao,
-                                actualCommentsCount = commentsCountMap.getOrDefault(publicacao.id, 0),
+                                actualCommentsCount = publicacao.comentariosCount, // Usar contagem do banco (mantida por triggers)
                                 actualLikesCount = realLikesCount, // Contagem real baseada na API de curtidas
                                 isLikedByUser = isLiked // Estado real das curtidas do servidor
                             )
@@ -803,7 +762,7 @@ fun CommentsSheetContent(
             coroutineScope.launch {
                 try {
                     val comentarioService = RetrofitFactory.getComentarioService()
-                    val response = comentarioService.getComentarios(post.id)
+                    val response = comentarioService.getAllComentarios()
                     
                     if (response.isSuccessful && response.body() != null) {
                         val comentarioResponse = response.body()!!
@@ -933,9 +892,12 @@ fun CommentsSheetContent(
                                 comments.add(0, newComment)
                                 // Também adicionar na lista do post para manter sincronizado
                                 post.comments.add(0, newComment)
+                                // Incrementar contador de comentários (sync com trigger do banco)
+                                post.commentsCount++
                                 newCommentText = ""
                                 
                                 android.util.Log.d("CommentsSheet", "Comentário adicionado localmente: ${newComment.userName} - ${newComment.text}")
+                                android.util.Log.d("CommentsSheet", "Contador de comentários atualizado para: ${post.commentsCount}")
                                 onAddComment(newComment.text)
                             } else {
                             }
