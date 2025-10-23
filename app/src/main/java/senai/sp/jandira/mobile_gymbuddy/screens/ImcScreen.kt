@@ -37,6 +37,7 @@ import senai.sp.jandira.mobile_gymbuddy.data.model.UsuarioCompleteRequest
 import senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.MobileGYMBUDDYTheme
 import senai.sp.jandira.mobile_gymbuddy.ui.theme.secondaryLight
+import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -213,9 +214,41 @@ fun ImcScreen(navController: NavController) {
                                     val response = usuarioService.cadastrarUsuarioCompleto(usuarioCompleto)
                                     
                                     if (response.isSuccessful && response.body()?.statusCode == 200) {
-                                        // Sucesso - limpar dados temporários
-                                        userDataRepository.clearTemporaryData()
                                         android.util.Log.d("IMC_CADASTRO", "Usuário cadastrado com sucesso!")
+                                        
+                                        // Fazer login automático após cadastro bem-sucedido
+                                        try {
+                                            android.util.Log.d("IMC_AUTO_LOGIN", "Iniciando login automático...")
+                                            val loginResponse = usuarioService.logarUsuario(tempUserData.email, tempUserData.senha)
+                                            
+                                            if (loginResponse.isSuccessful) {
+                                                val loginResult = loginResponse.body()
+                                                if (loginResult != null && loginResult.status && !loginResult.usuario.isNullOrEmpty()) {
+                                                    val usuario = loginResult.usuario[0]
+                                                    
+                                                    // Salvar dados do usuário usando UserPreferences
+                                                    UserPreferences.saveUserData(
+                                                        context = context,
+                                                        id = usuario.id,
+                                                        name = usuario.nome,
+                                                        nickname = usuario.nickname,
+                                                        email = usuario.email,
+                                                        photoUrl = usuario.foto_perfil
+                                                    )
+                                                    
+                                                    android.util.Log.d("IMC_AUTO_LOGIN", "Login automático bem-sucedido! Usuário: ${usuario.nome}")
+                                                } else {
+                                                    android.util.Log.e("IMC_AUTO_LOGIN", "Falha no login automático - dados inválidos")
+                                                }
+                                            } else {
+                                                android.util.Log.e("IMC_AUTO_LOGIN", "Falha no login automático - erro ${loginResponse.code()}")
+                                            }
+                                        } catch (loginError: Exception) {
+                                            android.util.Log.e("IMC_AUTO_LOGIN", "Erro no login automático: ${loginError.message}")
+                                        }
+                                        
+                                        // Limpar dados temporários após sucesso
+                                        userDataRepository.clearTemporaryData()
                                     } else {
                                         android.util.Log.e("IMC_CADASTRO", "Erro ao cadastrar: ${response.body()?.message}")
                                     }
