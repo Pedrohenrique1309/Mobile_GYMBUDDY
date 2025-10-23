@@ -26,6 +26,12 @@ interface NotificacaoService {
     suspend fun getTodasNotificacoes(): Response<NotificacaoResponse>
     
     /**
+     * Endpoint alternativo para testar se o básico funciona
+     */
+    @GET("v1/gymbuddy/notificacao")
+    suspend fun getTodasNotificacoesBasico(): Response<NotificacaoResponse>
+    
+    /**
      * Busca apenas notificações não lidas de um usuário
      */
     // Endpoint para notificações não lidas não existe no backend atual.

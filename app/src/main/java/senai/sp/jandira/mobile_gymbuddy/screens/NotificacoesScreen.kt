@@ -183,10 +183,20 @@ fun NotificacoesScreen(navController: NavController) {
     // Função para recarregar notificações
     fun recarregarNotificacoes() {
         isLoading = true
+        errorMessage = null
         coroutineScope.launch {
             try {
                 val userId = UserPreferences.getUserId(context)
                 android.util.Log.d("NotificacoesScreen", "🔄 Recarregando notificações...")
+                
+                // Testar primeiro se conseguimos fazer uma chamada básica da API
+                try {
+                    val publicacaoService = senai.sp.jandira.mobile_gymbuddy.data.service.RetrofitFactory.getPublicacaoService()
+                    val testResponse = publicacaoService.getPublicacoes()
+                    android.util.Log.d("NotificacoesScreen", "🧪 Teste da API básica: ${testResponse.isSuccessful}")
+                } catch (testE: Exception) {
+                    android.util.Log.e("NotificacoesScreen", "🧪 Falha no teste da API básica", testE)
+                }
                 
                 notificacaoRepository.getTodasNotificacoes().collect { notifs ->
                     val notificacoesDoUsuario = notifs.filter { it.idUsuarioDestino == userId }
@@ -207,14 +217,19 @@ fun NotificacoesScreen(navController: NavController) {
             try {
                 val userId = UserPreferences.getUserId(context)
                 android.util.Log.d("NotificacoesScreen", "🔔 Carregando notificações para usuário: $userId")
+                android.util.Log.d("NotificacoesScreen", "🌐 URL do endpoint: http://localhost:8080/v1/gymbuddy/view/notificacoes")
                 
                 // Usar a view de notificações detalhada
                 notificacaoRepository.getTodasNotificacoes().collect { notifs ->
                     android.util.Log.d("NotificacoesScreen", "📦 Total notificações da API: ${notifs.size}")
                     
+                    if (notifs.isEmpty()) {
+                        android.util.Log.w("NotificacoesScreen", "⚠️ Nenhuma notificação retornada pela API")
+                    }
+                    
                     // Log de cada notificação para debug
                     notifs.forEachIndexed { index, notif ->
-                        android.util.Log.d("NotificacoesScreen", "  📝 Notificação $index: destino=${notif.idUsuarioDestino}, origem=${notif.idUsuarioOrigem}, tipo=${notif.tipoNotificacao}")
+                        android.util.Log.d("NotificacoesScreen", "  📝 Notificação $index: ID=${notif.id}, destino=${notif.idUsuarioDestino}, origem=${notif.idUsuarioOrigem}, tipo=${notif.tipoNotificacao}, texto='${notif.textoNotificacao}'")
                     }
                     
                     // Filtrar notificações para o usuário logado
@@ -226,6 +241,8 @@ fun NotificacoesScreen(navController: NavController) {
                 }
             } catch (e: Exception) {
                 android.util.Log.e("NotificacoesScreen", "❌ Erro ao carregar notificações", e)
+                android.util.Log.e("NotificacoesScreen", "Tipo do erro: ${e.javaClass.simpleName}")
+                android.util.Log.e("NotificacoesScreen", "Stack trace:", e)
                 errorMessage = "Erro ao carregar notificações: ${e.message}"
                 isLoading = false
             }
@@ -289,13 +306,42 @@ fun NotificacoesScreen(navController: NavController) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = errorMessage ?: "Erro desconhecido",
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = "Erro",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Erro ao carregar notificações",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = errorMessage ?: "Erro desconhecido",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { recarregarNotificacoes() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Tentar novamente"
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Tentar novamente")
+                        }
+                    }
                 }
             }
             notificacoes.isEmpty() -> {

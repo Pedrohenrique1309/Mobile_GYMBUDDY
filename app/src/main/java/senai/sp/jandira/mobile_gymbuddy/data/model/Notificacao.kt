@@ -3,21 +3,14 @@ package senai.sp.jandira.mobile_gymbuddy.data.model
 import com.google.gson.annotations.SerializedName
 
 /**
- * Modelo para consumir dados da VIEW vw_notificacoes_detalhadas
- * Esta view já traz as notificações formatadas e JOINado com dados do usuário
+ * Modelo detalhado que corresponde à estrutura real da API
  */
-data class Notificacao(
+data class NotificacaoDetalhada(
     @SerializedName("id")
     val id: Int,
     
-    @SerializedName("id_usuario_destino")
-    val idUsuarioDestino: Int,
-    
-    @SerializedName("id_usuario_origem")
-    val idUsuarioOrigem: Int,
-    
-    @SerializedName("nickname_origem")
-    val nicknameOrigem: String,
+    @SerializedName("id_curtida")
+    val idCurtida: Int?,
     
     @SerializedName("tipo_notificacao")
     val tipoNotificacao: String,
@@ -28,19 +21,99 @@ data class Notificacao(
     @SerializedName("is_lida")
     val isLidaInt: Int,
     
-    @SerializedName("id_publicacao")
-    val idPublicacao: Int?,
+    @SerializedName("usuario_destino")
+    val usuarioDestino: List<UsuarioNotificacao>,
     
-    @SerializedName("id_comentario")
-    val idComentario: Int?,
+    @SerializedName("usuario_origem")
+    val usuarioOrigem: List<UsuarioNotificacao>,
     
-    @SerializedName("texto_notificacao")
-    val textoNotificacao: String
+    @SerializedName("publicacao")
+    val publicacao: List<PublicacaoNotificacao>?,
+    
+    @SerializedName("comentario")
+    val comentario: List<ComentarioNotificacao>?
 ) {
     // Propriedade computed para converter Int em Boolean
     val isLida: Boolean
         get() = isLidaInt == 1
+        
+    // Propriedade computed para criar texto da notificação
+    val textoNotificacao: String
+        get() {
+            val nomeOrigem = usuarioOrigem.firstOrNull()?.nickname ?: "Usuário"
+            return when (tipoNotificacao) {
+                "COMENTARIO" -> "$nomeOrigem comentou na sua publicação"
+                "CURTIDA_PUBLICACAO" -> "$nomeOrigem curtiu sua publicação"
+                "CURTIDA_COMENTARIO" -> "$nomeOrigem curtiu seu comentário"
+                else -> "$nomeOrigem interagiu com você"
+            }
+        }
+        
+    // IDs para compatibilidade com código existente
+    val idUsuarioDestino: Int
+        get() = usuarioDestino.firstOrNull()?.id ?: 0
+        
+    val idUsuarioOrigem: Int
+        get() = usuarioOrigem.firstOrNull()?.id ?: 0
+        
+    val nicknameOrigem: String
+        get() = usuarioOrigem.firstOrNull()?.nickname ?: "user"
 }
+
+/**
+ * Modelo simplificado para compatibilidade com código existente
+ */
+data class Notificacao(
+    val id: Int,
+    val idUsuarioDestino: Int,
+    val idUsuarioOrigem: Int,
+    val nicknameOrigem: String,
+    val tipoNotificacao: String,
+    val dataCriacao: String,
+    val isLidaInt: Int,
+    val idPublicacao: Int?,
+    val idComentario: Int?,
+    val textoNotificacao: String
+) {
+    val isLida: Boolean
+        get() = isLidaInt == 1
+}
+
+/**
+ * Modelos auxiliares para os arrays aninhados
+ */
+data class UsuarioNotificacao(
+    @SerializedName("id")
+    val id: Int,
+    
+    @SerializedName("nome")
+    val nome: String,
+    
+    @SerializedName("nickname")
+    val nickname: String,
+    
+    @SerializedName("foto")
+    val foto: String?
+)
+
+data class PublicacaoNotificacao(
+    @SerializedName("id")
+    val id: Int,
+    
+    @SerializedName("imagem")
+    val imagem: String?,
+    
+    @SerializedName("descricao")
+    val descricao: String
+)
+
+data class ComentarioNotificacao(
+    @SerializedName("id")
+    val id: Int,
+    
+    @SerializedName("conteudo")
+    val conteudo: String
+)
 
 /**
  * Response wrapper para a lista de notificações
@@ -55,8 +128,8 @@ data class NotificacaoResponse(
     @SerializedName("itens")
     val itens: Int,
     
-    @SerializedName("view")
-    val notificacoes: List<Notificacao>
+    @SerializedName("notificacoes")
+    val notificacoes: List<NotificacaoDetalhada>?
 )
 
 /**

@@ -24,7 +24,22 @@ class NotificacaoRepository {
         try {
             val response = notificacaoService.getNotificacoesUsuario(idUsuario)
             if (response.isSuccessful && response.body()?.status == true) {
-                emit(response.body()?.notificacoes ?: emptyList())
+                val notificacoesDetalhadas = response.body()?.notificacoes ?: emptyList()
+                val notificacoes = notificacoesDetalhadas.map { notifDetalhada ->
+                    Notificacao(
+                        id = notifDetalhada.id,
+                        idUsuarioDestino = notifDetalhada.idUsuarioDestino,
+                        idUsuarioOrigem = notifDetalhada.idUsuarioOrigem,
+                        nicknameOrigem = notifDetalhada.nicknameOrigem,
+                        tipoNotificacao = notifDetalhada.tipoNotificacao,
+                        dataCriacao = notifDetalhada.dataCriacao,
+                        isLidaInt = notifDetalhada.isLidaInt,
+                        idPublicacao = notifDetalhada.publicacao?.firstOrNull()?.id,
+                        idComentario = notifDetalhada.comentario?.firstOrNull()?.id,
+                        textoNotificacao = notifDetalhada.textoNotificacao
+                    )
+                }
+                emit(notificacoes)
             } else {
                 Log.e("NotificacaoRepository", "Erro ao buscar notificações: ${response.errorBody()?.string()}")
                 emit(emptyList())
@@ -41,21 +56,83 @@ class NotificacaoRepository {
      */
     suspend fun getTodasNotificacoes(): Flow<List<Notificacao>> = flow {
         try {
-            Log.d("NotificacaoRepository", "🔍 Fazendo requisição para notificações...")
+            Log.d("NotificacaoRepository", "🔍 Tentando endpoint principal: /v1/gymbuddy/view/notificacoes")
             val response = notificacaoService.getTodasNotificacoes()
-            Log.d("NotificacaoRepository", "📡 Resposta recebida: ${response.isSuccessful}, código: ${response.code()}")
+            Log.d("NotificacaoRepository", "📡 Resposta principal: ${response.isSuccessful}, código: ${response.code()}")
             
-            if (response.isSuccessful && response.body()?.status == true) {
-                val notificacoes = response.body()?.notificacoes ?: emptyList()
-                Log.d("NotificacaoRepository", "✅ Notificações encontradas: ${notificacoes.size}")
-                emit(notificacoes)
-            } else {
-                Log.e("NotificacaoRepository", "❌ Erro ao buscar todas notificações: ${response.errorBody()?.string()}")
-                Log.e("NotificacaoRepository", "Status da resposta: ${response.body()?.status}")
-                emit(emptyList())
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                Log.d("NotificacaoRepository", "📋 Body status: ${body.status}")
+                Log.d("NotificacaoRepository", "📋 Body itens: ${body.itens}")
+                Log.d("NotificacaoRepository", "📋 Body notificacoes size: ${body.notificacoes?.size ?: 0}")
+                
+                if (body.status && body.notificacoes != null) {
+                    // Converter NotificacaoDetalhada para Notificacao
+                    val notificacoes = body.notificacoes.map { notifDetalhada ->
+                        Notificacao(
+                            id = notifDetalhada.id,
+                            idUsuarioDestino = notifDetalhada.idUsuarioDestino,
+                            idUsuarioOrigem = notifDetalhada.idUsuarioOrigem,
+                            nicknameOrigem = notifDetalhada.nicknameOrigem,
+                            tipoNotificacao = notifDetalhada.tipoNotificacao,
+                            dataCriacao = notifDetalhada.dataCriacao,
+                            isLidaInt = notifDetalhada.isLidaInt,
+                            idPublicacao = notifDetalhada.publicacao?.firstOrNull()?.id,
+                            idComentario = notifDetalhada.comentario?.firstOrNull()?.id,
+                            textoNotificacao = notifDetalhada.textoNotificacao
+                        )
+                    }
+                    Log.d("NotificacaoRepository", "✅ Notificações convertidas: ${notificacoes.size}")
+                    emit(notificacoes)
+                    return@flow
+                }
             }
+            
+            // Se o endpoint principal não funcionou, tentar o básico
+            Log.w("NotificacaoRepository", "⚠️ Endpoint principal falhou, tentando alternativo: /v1/gymbuddy/notificacao")
+            val responseBasico = notificacaoService.getTodasNotificacoesBasico()
+            Log.d("NotificacaoRepository", "📡 Resposta alternativa: ${responseBasico.isSuccessful}, código: ${responseBasico.code()}")
+            
+            if (responseBasico.isSuccessful && responseBasico.body() != null) {
+                val body = responseBasico.body()!!
+                if (body.status && body.notificacoes != null) {
+                    // Converter NotificacaoDetalhada para Notificacao
+                    val notificacoes = body.notificacoes.map { notifDetalhada ->
+                        Notificacao(
+                            id = notifDetalhada.id,
+                            idUsuarioDestino = notifDetalhada.idUsuarioDestino,
+                            idUsuarioOrigem = notifDetalhada.idUsuarioOrigem,
+                            nicknameOrigem = notifDetalhada.nicknameOrigem,
+                            tipoNotificacao = notifDetalhada.tipoNotificacao,
+                            dataCriacao = notifDetalhada.dataCriacao,
+                            isLidaInt = notifDetalhada.isLidaInt,
+                            idPublicacao = notifDetalhada.publicacao?.firstOrNull()?.id,
+                            idComentario = notifDetalhada.comentario?.firstOrNull()?.id,
+                            textoNotificacao = notifDetalhada.textoNotificacao
+                        )
+                    }
+                    Log.d("NotificacaoRepository", "✅ Notificações do endpoint alternativo: ${notificacoes.size}")
+                    emit(notificacoes)
+                    return@flow
+                }
+            }
+            
+            // Se ambos falharam
+            Log.e("NotificacaoRepository", "❌ Ambos endpoints falharam")
+            try {
+                val errorBody = response.errorBody()?.string()
+                Log.e("NotificacaoRepository", "Error body principal: $errorBody")
+                val errorBodyBasico = responseBasico.errorBody()?.string()
+                Log.e("NotificacaoRepository", "Error body alternativo: $errorBodyBasico")
+            } catch (e2: Exception) {
+                Log.e("NotificacaoRepository", "Erro ao ler error bodies", e2)
+            }
+            emit(emptyList())
+            
         } catch (e: Exception) {
             Log.e("NotificacaoRepository", "💥 Exceção ao buscar todas notificações", e)
+            Log.e("NotificacaoRepository", "Tipo da exceção: ${e.javaClass.simpleName}")
+            Log.e("NotificacaoRepository", "Mensagem: ${e.message}")
             emit(emptyList())
         }
     }
@@ -67,7 +144,22 @@ class NotificacaoRepository {
         try {
             val response = notificacaoService.getNotificacoesNaoLidas(idUsuario)
             if (response.isSuccessful && response.body()?.status == true) {
-                emit(response.body()?.notificacoes ?: emptyList())
+                val notificacoesDetalhadas = response.body()?.notificacoes ?: emptyList()
+                val notificacoes = notificacoesDetalhadas.map { notifDetalhada ->
+                    Notificacao(
+                        id = notifDetalhada.id,
+                        idUsuarioDestino = notifDetalhada.idUsuarioDestino,
+                        idUsuarioOrigem = notifDetalhada.idUsuarioOrigem,
+                        nicknameOrigem = notifDetalhada.nicknameOrigem,
+                        tipoNotificacao = notifDetalhada.tipoNotificacao,
+                        dataCriacao = notifDetalhada.dataCriacao,
+                        isLidaInt = notifDetalhada.isLidaInt,
+                        idPublicacao = notifDetalhada.publicacao?.firstOrNull()?.id,
+                        idComentario = notifDetalhada.comentario?.firstOrNull()?.id,
+                        textoNotificacao = notifDetalhada.textoNotificacao
+                    )
+                }
+                emit(notificacoes)
             } else {
                 Log.e("NotificacaoRepository", "Erro ao buscar notificações não lidas: ${response.errorBody()?.string()}")
                 emit(emptyList())
