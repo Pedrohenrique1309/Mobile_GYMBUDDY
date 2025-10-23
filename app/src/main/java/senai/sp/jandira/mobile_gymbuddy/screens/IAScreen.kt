@@ -1,7 +1,5 @@
 package senai.sp.jandira.mobile_gymbuddy.screens
 
-package senai.sp.jandira.mobile_gymbuddy.screens
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

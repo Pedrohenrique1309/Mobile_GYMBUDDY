@@ -31,6 +31,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.tooling.preview.Preview
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import senai.sp.jandira.mobile_gymbuddy.R
@@ -47,10 +50,7 @@ import senai.sp.jandira.mobile_gymbuddy.data.model.CurtidaRequest
 import android.content.Context
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.withStyle
-import senai.sp.jandira.mobile_gymbuddy.utils.UserPreferences
-import coil.compose.AsyncImage
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -791,7 +791,7 @@ fun PostItem(
                 modifier = Modifier.clickable { onCommentClick() }
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.ChatBubbleOutline,
+                    imageVector = Icons.Default.Comment,
                     contentDescription = "Comentar",
                     modifier = Modifier.size(28.dp),
                     tint = MaterialTheme.colorScheme.onBackground
