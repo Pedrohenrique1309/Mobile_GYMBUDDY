@@ -142,22 +142,46 @@ fun NotificationCardFromApi(
 }
 
 /**
- * Função para formatar a data da notificação
+ * Função para formatar a data da notificação de forma mais amigável
  */
 fun formatarDataNotificacao(dataString: String): String {
     return try {
-        // Assumindo que a data vem no formato "yyyy-MM-dd HH:mm:ss"
-        // Você pode ajustar conforme o formato real da sua API
-        val partes = dataString.split(" ")
-        if (partes.size >= 2) {
-            val data = partes[0]
-            val hora = partes[1].substring(0, 5) // HH:mm
-            "$data às $hora"
+        // Remove o 'Z' no final e converte para formato mais limpo
+        val dataLimpa = dataString.replace("Z", "").replace("T", " ")
+        
+        // Parse da data ISO
+        val formato = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        val dataNotificacao = formato.parse(dataLimpa)
+        
+        if (dataNotificacao != null) {
+            val agora = java.util.Date()
+            val diferencaMs = agora.time - dataNotificacao.time
+            val diferencaMinutos = diferencaMs / (1000 * 60)
+            val diferencaHoras = diferencaMinutos / 60
+            val diferencaDias = diferencaHoras / 24
+            
+            when {
+                diferencaMinutos < 1 -> "agora"
+                diferencaMinutos < 60 -> "${diferencaMinutos.toInt()}min atrás"
+                diferencaHoras < 24 -> "${diferencaHoras.toInt()}h atrás"
+                diferencaDias < 7 -> "${diferencaDias.toInt()} ${if (diferencaDias.toInt() == 1) "dia" else "dias"} atrás"
+                else -> {
+                    // Para datas muito antigas, mostrar data formatada
+                    val formatoData = java.text.SimpleDateFormat("dd/MM", java.util.Locale.getDefault())
+                    formatoData.format(dataNotificacao)
+                }
+            }
         } else {
-            dataString
+            "data inválida"
         }
     } catch (e: Exception) {
-        dataString
+        android.util.Log.e("FormatarData", "Erro ao formatar data: $dataString", e)
+        // Fallback simples
+        try {
+            dataString.substring(0, 10).replace("-", "/")
+        } catch (e2: Exception) {
+            "data inválida"
+        }
     }
 }
 
