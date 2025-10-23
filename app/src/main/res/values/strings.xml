@@ -91,6 +91,31 @@
     <string name="like_button">Curtir</string>
     <string name="comment_button">Comentar</string>
     
+    <!-- Edit Profile Screen -->
+    <string name="loading_profile">Carregando perfil...</string>
+    <string name="user_not_found">Usuário não encontrado</string>
+    <string name="profile_load_error">Erro ao carregar perfil: %1$d</string>
+    <string name="connection_error">Erro de conexão: %1$s</string>
+    <string name="username_label">Nome de usuário: </string>
+    <string name="nickname_label">Nickname: </string>
+    <string name="description_label_profile">Descrição:</string>
+    <string name="no_description">Nenhuma descrição fornecida</string>
+    <string name="imc_label">IMC: </string>
+    <string name="edit_profile_button">Editar Perfil</string>
+    <string name="new_post_button">Nova publicação</string>
+    <string name="no_posts_found">Nenhuma publicação encontrada</string>
+    <string name="posts_will_appear">Suas publicações aparecerão aqui</string>
+    <string name="notifications_badge_99">59+</string>
+    <string name="profile_badge_3">3</string>
+    
+    <!-- Content Descriptions - Edit Profile -->
+    <string name="profile_photo">Foto de perfil</string>
+    <string name="error_icon">Erro</string>
+    <string name="no_posts_icon">Sem publicações</string>
+    <string name="user_post">Publicação do usuário</string>
+    <string name="post_no_image">Post sem imagem</string>
+    <string name="logo_gym_buddy_desc">Logo GYM BUDDY</string>
+    
     <!-- General -->
     <string name="loading">Carregando...</string>
     <string name="error_network">Erro de conexão. Tente novamente.</string>

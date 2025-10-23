@@ -387,7 +387,15 @@ fun HomeScreen(
                             }
                         },
                         selected = selectedItem == index,
-                        onClick = { selectedItem = index }
+                        onClick = { 
+                            selectedItem = index
+                            when (index) {
+                                0 -> { /* Já está na Home */ }
+                                1 -> { /* Treinos - não implementado */ }
+                                2 -> { /* Conquistas - não implementado */ }
+                                3 -> navController.navigate("editProfile") // Perfil
+                            }
+                        }
                     )
                 }
             }
